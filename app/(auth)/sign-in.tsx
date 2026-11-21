@@ -124,7 +124,7 @@ export default function SignInScreen() {
         )}
 
         {error && (
-          <Text accessibilityRole="alert" style={{ color: colors.danger }}>
+          <Text accessibilityRole="alert" style={{ color: colors.dangerInk }}>
             {error}
           </Text>
         )}

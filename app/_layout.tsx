@@ -11,6 +11,8 @@ import { useSyncLifecycle } from '@/features/sync/hooks/useSyncLifecycle';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { queryClient } from '@/lib/queryClient';
 import { useTheme } from '@/theme/useTheme';
+import { ToastHost } from '@/components/ui/Toast';
+import { webFrameBg } from '@/theme/tokens';
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -67,6 +69,7 @@ export default function RootLayout() {
           {/* Magic-link / OAuth return. Must stay reachable in both states. */}
           <Stack.Screen name="auth/callback" />
         </Stack>
+          <ToastHost />
         </PhoneFrame>
       </SafeAreaProvider>
     </QueryClientProvider>
@@ -77,7 +80,7 @@ export default function RootLayout() {
 function PhoneFrame({ children }: { children: React.ReactNode }) {
   if (Platform.OS !== 'web') return <>{children}</>;
   return (
-    <View style={{ flex: 1, alignItems: 'center', backgroundColor: '#1b1e24' }}>
+    <View style={{ flex: 1, alignItems: 'center', backgroundColor: webFrameBg }}>
       <View style={{ flex: 1, width: '100%', maxWidth: 430 }}>{children}</View>
     </View>
   );

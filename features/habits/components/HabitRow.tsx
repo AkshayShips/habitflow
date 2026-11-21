@@ -5,6 +5,7 @@ import * as Haptics from 'expo-haptics';
 import { HabitIcon } from '@/components/ui/HabitIcon';
 import { Text } from '@/components/ui/Text';
 import { useTheme } from '@/theme/useTheme';
+import { onColor } from '@/theme/tokens';
 
 interface Props {
   name: string;
@@ -45,7 +46,7 @@ export function HabitRow({ name, icon, color, subtitle, done, streak, last, onTo
           alignItems: 'center', justifyContent: 'center', backgroundColor: color, opacity: done ? 0.55 : 1,
         }}
       >
-        <HabitIcon name={icon} color="#FFFFFF" size={22} />
+        <HabitIcon name={icon} color={onColor} size={22} />
       </View>
 
       <View
@@ -74,7 +75,7 @@ export function HabitRow({ name, icon, color, subtitle, done, streak, last, onTo
             backgroundColor: done ? color : 'transparent', borderWidth: 2, borderColor: done ? color : colors.border,
           }}
         >
-          {done ? <Ionicons name="checkmark" size={18} color="#FFFFFF" /> : null}
+          {done ? <Ionicons name="checkmark" size={18} color={onColor} /> : null}
         </View>
       </View>
     </Pressable>

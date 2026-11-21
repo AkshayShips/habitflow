@@ -6,6 +6,7 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { useHabits } from '@/features/habits/hooks/useHabits';
 import { useTheme } from '@/theme/useTheme';
+import { tileColors } from '@/theme/tokens';
 
 const TIMES = ['7:00 AM', '8:00 AM', '12:30 PM', '6:00 PM', '9:00 PM'];
 
@@ -23,7 +24,7 @@ export default function RemindersScreen() {
   return (
     <Screen>
       <Group>
-        <ListRow icon="notifications" iconColor="#E07B5B" title="Daily reminder" toggle={{ value: enabled, onChange: setEnabled }} last />
+        <ListRow icon="notifications" iconColor={tileColors.orange} title="Daily reminder" toggle={{ value: enabled, onChange: setEnabled }} last />
       </Group>
 
       {enabled ? (
@@ -37,7 +38,7 @@ export default function RemindersScreen() {
 
           <SectionLabel>Quiet hours</SectionLabel>
           <Group>
-            <ListRow icon="moon" iconColor="#8E7CE0" title="Pause 10 PM to 7 AM" toggle={{ value: quiet, onChange: setQuiet }} last />
+            <ListRow icon="moon" iconColor={tileColors.purple} title="Pause 10 PM to 7 AM" toggle={{ value: quiet, onChange: setQuiet }} last />
           </Group>
 
           <SectionLabel>Include these habits</SectionLabel>

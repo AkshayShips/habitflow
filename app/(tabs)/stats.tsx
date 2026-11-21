@@ -18,6 +18,7 @@ import {
 } from '@/features/stats/logic/stats';
 import { useIsPro } from '@/lib/entitlements';
 import { useTheme } from '@/theme/useTheme';
+import { onColor, tileColors } from '@/theme/tokens';
 
 const PERIODS = [
   { value: 'week' as const, label: 'Week' },
@@ -96,9 +97,9 @@ export default function StatsScreen() {
           ) : (
             <>
               <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-                <Tile icon="trending-up" tone="#4FB286" label="Completion" value={percent(summary.rate)} />
-                <Tile icon="star" tone="#E0A44A" label="Perfect days" value={String(perfect)} />
-                <Tile icon="flame" tone="#E07B5B" label="Best streak" value={String(longest)} />
+                <Tile icon="trending-up" tone={tileColors.green} label="Completion" value={percent(summary.rate)} />
+                <Tile icon="star" tone={tileColors.gold} label="Perfect days" value={String(perfect)} />
+                <Tile icon="flame" tone={tileColors.orange} label="Best streak" value={String(longest)} />
               </View>
 
               <View style={card}>
@@ -154,7 +155,7 @@ function Tile({ label, value, icon, tone }: { label: string; value: string; icon
       style={{ flex: 1, backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.md, gap: spacing.sm }}
     >
       <View style={{ width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: tone }}>
-        <Ionicons name={icon} size={16} color="#FFFFFF" />
+        <Ionicons name={icon} size={16} color={onColor} />
       </View>
       <View>
         <Text variant="title2">{value}</Text>

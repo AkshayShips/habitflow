@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Switch, View, type StyleProp, type ViewStyle } f
 
 import { useTheme } from '@/theme/useTheme';
 import { Text } from './Text';
+import { onColor } from '@/theme/tokens';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -48,7 +49,7 @@ interface RowProps {
 
 export function ListRow({ leading, title, subtitle, icon, iconColor, value, onPress, destructive, toggle, last, badge }: RowProps) {
   const { colors, spacing } = useTheme();
-  const tile = destructive ? colors.danger : (iconColor ?? colors.accent);
+  const tile = destructive ? colors.dangerInk : (iconColor ?? colors.accent);
   const body = (
     <View style={{ flexDirection: 'row', alignItems: 'center', paddingLeft: spacing.lg, minHeight: 56 }}>
       {leading ? (
@@ -60,7 +61,7 @@ export function ListRow({ leading, title, subtitle, icon, iconColor, value, onPr
             alignItems: 'center', justifyContent: 'center', backgroundColor: tile,
           }}
         >
-          <Ionicons name={icon} size={18} color="#FFFFFF" />
+          <Ionicons name={icon} size={18} color={onColor} />
         </View>
       ) : null}
       <View
@@ -71,7 +72,7 @@ export function ListRow({ leading, title, subtitle, icon, iconColor, value, onPr
         }}
       >
         <View style={{ flex: 1 }}>
-          <Text style={destructive ? { color: colors.danger } : undefined}>{title}</Text>
+          <Text style={destructive ? { color: colors.dangerInk } : undefined}>{title}</Text>
           {subtitle ? <Text variant="footnote" secondary>{subtitle}</Text> : null}
         </View>
         {badge ? (

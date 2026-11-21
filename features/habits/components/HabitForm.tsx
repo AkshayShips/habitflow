@@ -192,7 +192,7 @@ export function HabitForm({ initial, submitLabel, onSubmit }: Props) {
       </View>
 
       {error && (
-        <Text accessibilityRole="alert" style={{ color: colors.danger }}>
+        <Text accessibilityRole="alert" style={{ color: colors.dangerInk }}>
           {error}
         </Text>
       )}

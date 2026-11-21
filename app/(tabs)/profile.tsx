@@ -14,6 +14,7 @@ import { useSyncStore } from '@/features/sync/store/syncStore';
 import { syncNow } from '@/features/sync/syncManager';
 import { deleteLocalDb } from '@/lib/localDb';
 import { useTheme } from '@/theme/useTheme';
+import { tileColors } from '@/theme/tokens';
 
 export default function ProfileScreen() {
   const { colors, spacing, radius } = useTheme();
@@ -73,15 +74,15 @@ export default function ProfileScreen() {
 
       {!isPro && (
         <Group>
-          <ListRow icon="sparkles" iconColor="#8E7CE0" title="Upgrade to Pro" subtitle="Unlimited habits, full history, more coach messages" onPress={() => router.push('/paywall')} last />
+          <ListRow icon="sparkles" iconColor={tileColors.purple} title="Upgrade to Pro" subtitle="Unlimited habits, full history, more coach messages" onPress={() => router.push('/paywall')} last />
         </Group>
       )}
 
       <Group>
-        <ListRow icon="trophy" iconColor="#E0A44A" title="Achievements" onPress={() => router.push('/achievements')} />
-        <ListRow icon="book" iconColor="#4FB286" title="Journal" onPress={() => router.push('/journal')} />
-        <ListRow icon="settings" iconColor="#7A8696" title="Settings" onPress={() => router.push('/settings')} />
-        <ListRow icon="play" iconColor="#5B8DEF" title="Replay welcome tour" onPress={() => router.push('/onboarding')} last />
+        <ListRow icon="trophy" iconColor={tileColors.gold} title="Achievements" onPress={() => router.push('/achievements')} />
+        <ListRow icon="book" iconColor={tileColors.green} title="Journal" onPress={() => router.push('/journal')} />
+        <ListRow icon="settings" iconColor={tileColors.gray} title="Settings" onPress={() => router.push('/settings')} />
+        <ListRow icon="play" iconColor={tileColors.blue} title="Replay welcome tour" onPress={() => router.push('/onboarding')} last />
       </Group>
 
       <View style={{ backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.sm }}>
@@ -143,7 +144,7 @@ export default function ProfileScreen() {
 
           {message && <Text accessibilityLiveRegion="polite">{message}</Text>}
           {error && (
-            <Text accessibilityRole="alert" style={{ color: colors.danger }}>
+            <Text accessibilityRole="alert" style={{ color: colors.dangerInk }}>
               {error}
             </Text>
           )}

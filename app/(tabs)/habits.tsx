@@ -15,6 +15,7 @@ import { describeCadence } from '@/features/habits/logic/schedule';
 import type { StreakResult } from '@/features/habits/logic/types';
 import { FREE_HABIT_LIMIT, useIsPro } from '@/lib/entitlements';
 import { useTheme } from '@/theme/useTheme';
+import { onColor } from '@/theme/tokens';
 
 export default function HabitsScreen() {
   const { colors, spacing } = useTheme();
@@ -102,7 +103,7 @@ function Row({ habit, streak, onPress, dim, last }: { habit: Habit; streak?: Str
       <ListRow
         leading={
           <View style={{ width: 40, height: 40, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: habit.color }}>
-            <HabitIcon name={habit.icon} color="#FFFFFF" size={22} />
+            <HabitIcon name={habit.icon} color={onColor} size={22} />
           </View>
         }
         title={habit.name}
