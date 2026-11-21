@@ -1,6 +1,7 @@
 import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 
+import { showToast } from '@/components/ui/Toast';
 import { HabitForm } from '@/features/habits/components/HabitForm';
 import { useCreateHabit } from '@/features/habits/hooks/useHabits';
 import { useTheme } from '@/theme/useTheme';
@@ -18,6 +19,7 @@ export default function NewHabitScreen() {
           onSubmit={async (input) => {
             await create.mutateAsync(input);
             router.back();
+            showToast('Habit created', 'success');
           }}
         />
       </ScrollView>

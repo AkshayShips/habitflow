@@ -45,7 +45,7 @@ Honesty note: all visual checks so far were done in a desktop Chromium rendering
 
 1. Hard-coded hex colors outside tokens (`settings/*`, `profile`, `stats` Tile tones, `_layout` PhoneFrame, `habit-detail`, `habits`). Need semantic tint tokens.
 2. Palette differs from the spec (current accent `#2F5FD0` blue, bg `#F2F2F7`; spec: `#6558F5`, `#F8F9FC`). Spacing scale is 4/8/16/24/32/48; spec adds 12/20/40. Radii 8/12/16/24; spec 10/16/22/28.
-3. Two overlapping detail/edit screens: `habit-detail` (read-only, reached from nowhere except its own file's registration – Habits list pushes to `/habit/[id]` edit). Detail screen appears unreachable; verify and merge.
+3. Detail (`habit-detail`, read-only) and edit (`habit/[id]`) are separate screens. *Correction (Stage 3): my first audit wrongly called the detail screen unreachable; the Habits list already opened it via an object-style route my grep missed.*
 4. `HabitForm`, `sign-in`, `delete-account`, `habit/[id]` still use the older (pre-restyle) look in places; not audited visually.
 5. No shared sheet/modal, swipe action, toast, or empty-state illustration components.
 6. Web-only workarounds in the tab bar (height/padding) should be isolated, not mixed into native styling.

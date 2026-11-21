@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Button } from '@/components/ui/Button';
 import { ErrorState, ListSkeleton } from '@/components/ui/StateViews';
 import { Text } from '@/components/ui/Text';
+import { showToast } from '@/components/ui/Toast';
 import { HabitForm } from '@/features/habits/components/HabitForm';
 import { useArchiveHabit, useDeleteHabit, useHabit, useUpdateHabit } from '@/features/habits/hooks/useHabits';
 import { useTheme } from '@/theme/useTheme';
@@ -44,6 +45,7 @@ export default function EditHabitScreen() {
         onSubmit={async (input) => {
           await update.mutateAsync(input);
           router.back();
+          showToast('Changes saved', 'success');
         }}
       />
 
@@ -55,7 +57,10 @@ export default function EditHabitScreen() {
             archive.mutate(
               { id: habit.id, archived: !archived },
               {
-                onSuccess: () => router.back(),
+                onSuccess: () => {
+                  router.back();
+                  showToast(archived ? 'Habit restored' : 'Habit archived', 'success');
+                },
                 onError: (e) => Alert.alert('Can’t restore', e.message),
               },
             )

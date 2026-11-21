@@ -12,7 +12,7 @@ import { useHabit, useLogs, useStreaks, useTodayStr } from '@/features/habits/ho
 import { addDays, weekStart } from '@/features/habits/logic/dates';
 import { describeCadence, isScheduledOn } from '@/features/habits/logic/schedule';
 import { useTheme } from '@/theme/useTheme';
-import { onColor } from '@/theme/tokens';
+import { readableOn } from '@/lib/color';
 
 const WEEKS = 6;
 const DOW = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -103,7 +103,7 @@ export default function HabitDetailScreen() {
                       borderWidth: d === today ? 2 : 0, borderColor: colors.text,
                     }}
                   >
-                    <Text variant="caption" style={{ color: isDone ? onColor : colors.textSecondary }}>
+                    <Text variant="caption" style={{ color: isDone ? readableOn(habit.color) : colors.textSecondary }}>
                       {Number(d.slice(8))}
                     </Text>
                   </View>

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { RefreshControl, ScrollView, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -9,7 +9,7 @@ import { Card, Group, SectionLabel } from '@/components/ui/Card';
 import { LargeHeader } from '@/components/ui/LargeHeader';
 import { ProgressRing } from '@/components/ui/ProgressRing';
 import { Text } from '@/components/ui/Text';
-import { MOCK_XP } from '@/features/preview/mock';
+import { showToast } from '@/components/ui/Toast';
 import { HabitRow } from '@/features/habits/components/HabitRow';
 import { useHabits, useLogs, useStreaks, useToggleDone, useTodayStr } from '@/features/habits/hooks/useHabits';
 import { addDays, weekStart } from '@/features/habits/logic/dates';
@@ -56,6 +56,7 @@ export default function TodayScreen() {
   }, [habitsQ.data, logsQ.data, today]);
 
   const doneCount = rows.filter((r) => r.done).length;
+  const bestStreak = rows.reduce((m, r) => Math.max(m, streaks.get(r.habit.id)?.current ?? 0), 0);
   const loading = habitsQ.isPending || logsQ.isPending;
   const error = habitsQ.error ?? logsQ.error;
   const noHabitsAtAll = !loading && !error && (habitsQ.data ?? []).filter((h) => !h.archivedAt).length === 0;
@@ -108,16 +109,11 @@ export default function TodayScreen() {
               <Text secondary>
                 {doneCount === rows.length ? 'Nice and steady today.' : `${rows.length - doneCount} left for today`}
               </Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Level ${MOCK_XP.level}, ${MOCK_XP.xp} XP. Opens achievements.`}
-                onPress={() => router.push('/achievements')}
-                style={{ minHeight: 44, justifyContent: 'center' }}
-              >
-                <Text variant="footnote" style={{ color: colors.accent, fontWeight: '600' }}>
-                  Level {MOCK_XP.level} · {MOCK_XP.xp} XP ›
+              {bestStreak > 0 ? (
+                <Text variant="footnote" style={{ color: colors.warningInk, fontWeight: '600' }}>
+                  Longest active streak: {bestStreak} {bestStreak === 1 ? 'day' : 'days'}
                 </Text>
-              </Pressable>
+              ) : null}
             </View>
           </Card>
 
@@ -133,7 +129,13 @@ export default function TodayScreen() {
                 done={done}
                 last={i === rows.length - 1}
                 streak={streaks.get(habit.id)?.current ?? 0}
-                onToggle={() => toggle.mutate({ habitId: habit.id, date: today, done: !done })}
+                onOpen={() => router.push({ pathname: '/habit-detail', params: { id: habit.id } })}
+                onToggle={() =>
+                  toggle.mutate(
+                    { habitId: habit.id, date: today, done: !done },
+                    { onError: () => showToast('Couldn’t save that check-in. Please try again.', 'error') },
+                  )
+                }
               />
             ))}
           </Group>
