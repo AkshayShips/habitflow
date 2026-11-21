@@ -10,10 +10,12 @@ import { useSyncProfileTimezone } from '@/features/auth/hooks/useSyncProfileTime
 import { useSyncLifecycle } from '@/features/sync/hooks/useSyncLifecycle';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { queryClient } from '@/lib/queryClient';
+import { useTheme } from '@/theme/useTheme';
 
 void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const { colors } = useTheme();
   const initialized = useAuthStore((s) => s.initialized);
   const signedIn = useAuthStore((s) => s.session !== null);
   const init = useAuthStore((s) => s.init);
@@ -35,7 +37,16 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <StatusBar style="auto" />
         <PhoneFrame>
-        <Stack screenOptions={{ headerShown: false }}>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            headerShadowVisible: false,
+            headerStyle: { backgroundColor: colors.bg },
+            headerTintColor: colors.accent,
+            headerTitleStyle: { color: colors.text, fontWeight: '600' },
+            contentStyle: { backgroundColor: colors.bg },
+          }}
+        >
           <Stack.Protected guard={signedIn}>
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="habit/new" options={{ presentation: 'modal', headerShown: true, title: 'New habit' }} />

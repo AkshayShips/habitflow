@@ -1,8 +1,10 @@
 import { Pressable, ScrollView, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button } from '@/components/ui/Button';
+import { Group, ListRow, SectionLabel } from '@/components/ui/Card';
+import { LargeHeader } from '@/components/ui/LargeHeader';
 import { HabitIcon } from '@/components/ui/HabitIcon';
 import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { EmptyState, ErrorState, ListSkeleton } from '@/components/ui/StateViews';
@@ -34,12 +36,22 @@ export default function HabitsScreen() {
       style={{ flex: 1, backgroundColor: colors.bg }}
       contentContainerStyle={{ padding: spacing.lg, paddingTop: insets.top + spacing.md, gap: spacing.md }}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Text variant="largeTitle">Habits</Text>
-        <View style={{ width: 120 }}>
-          <Button title="Add" onPress={() => router.push('/habit/new')} />
-        </View>
-      </View>
+      <LargeHeader
+        title="Habits"
+        right={
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Add habit"
+            onPress={() => router.push('/habit/new')}
+            style={({ pressed }) => ({
+              width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center',
+              backgroundColor: colors.accent, opacity: pressed ? 0.8 : 1,
+            })}
+          >
+            <Ionicons name="add" size={26} color={colors.accentText} />
+          </Pressable>
+        }
+      />
 
       <OfflineBanner />
 
@@ -57,24 +69,24 @@ export default function HabitsScreen() {
       ) : (
         <>
           {!isPro && (
-            <Text variant="footnote" secondary>
+            <Text variant="footnote" secondary style={{ marginLeft: spacing.xs }}>
               {active.length} of {FREE_HABIT_LIMIT} free habits in use
             </Text>
           )}
-          <View style={{ gap: spacing.sm }}>
-            {active.map((h) => (
-              <Row key={h.id} habit={h} streak={streaks.get(h.id)} onPress={() => router.push({ pathname: '/habit-detail', params: { id: h.id } })} />
+          <Group>
+            {active.map((h, i) => (
+              <Row key={h.id} habit={h} streak={streaks.get(h.id)} last={i === active.length - 1} onPress={() => router.push({ pathname: '/habit-detail', params: { id: h.id } })} />
             ))}
-          </View>
+          </Group>
 
           {archived.length > 0 && (
             <>
-              <Text variant="headline" style={{ marginTop: spacing.md }}>Archived</Text>
-              <View style={{ gap: spacing.sm }}>
-                {archived.map((h) => (
-                  <Row key={h.id} habit={h} streak={streaks.get(h.id)} onPress={() => router.push({ pathname: '/habit-detail', params: { id: h.id } })} dim />
+              <SectionLabel>Archived</SectionLabel>
+              <Group>
+                {archived.map((h, i) => (
+                  <Row key={h.id} habit={h} streak={streaks.get(h.id)} last={i === archived.length - 1} dim onPress={() => router.push({ pathname: '/habit-detail', params: { id: h.id } })} />
                 ))}
-              </View>
+              </Group>
             </>
           )}
         </>
@@ -83,27 +95,22 @@ export default function HabitsScreen() {
   );
 }
 
-function Row({ habit, streak, onPress, dim }: { habit: Habit; streak?: StreakResult; onPress: () => void; dim?: boolean }) {
-  const { colors, spacing, radius } = useTheme();
+function Row({ habit, streak, onPress, dim, last }: { habit: Habit; streak?: StreakResult; onPress: () => void; dim?: boolean; last?: boolean }) {
   const best = streak?.longest ?? 0;
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${habit.name}. ${describeCadence(habit.cadence)}. Best streak ${best}. Opens details.`}
-      onPress={onPress}
-      style={{
-        flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, minHeight: 64,
-        backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border,
-        opacity: dim ? 0.6 : 1,
-      }}
-    >
-      <HabitIcon name={habit.icon} color={habit.color} size={26} />
-      <View style={{ flex: 1 }}>
-        <Text variant="headline" numberOfLines={1}>{habit.name}</Text>
-        <Text variant="footnote" secondary numberOfLines={1}>
-          {describeCadence(habit.cadence)} · best {best}
-        </Text>
-      </View>
-    </Pressable>
+    <View style={{ opacity: dim ? 0.55 : 1 }}>
+      <ListRow
+        leading={
+          <View style={{ width: 40, height: 40, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: habit.color }}>
+            <HabitIcon name={habit.icon} color="#FFFFFF" size={22} />
+          </View>
+        }
+        title={habit.name}
+        subtitle={describeCadence(habit.cadence)}
+        value={best > 0 ? `Best ${best}` : undefined}
+        onPress={onPress}
+        last={last}
+      />
+    </View>
   );
 }

@@ -6,17 +6,20 @@ import { Text } from './Text';
 
 interface Props extends Omit<PressableProps, 'children'> {
   title: string;
+  /** primary: solid; secondary: tinted (iOS "tinted" button); ghost: text only; danger: destructive solid. */
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
   loading?: boolean;
 }
 
 export function Button({ title, variant = 'primary', loading, disabled, onPress, ...rest }: Props) {
-  const { colors, radius, spacing } = useTheme();
+  const { colors, radius, spacing, isDark } = useTheme();
   const isDisabled = disabled || loading;
 
+  const tint = isDark ? 'rgba(126,162,245,0.18)' : 'rgba(47,95,208,0.10)';
   const bg =
-    variant === 'primary' ? colors.accent : variant === 'danger' ? colors.danger : variant === 'secondary' ? colors.surfaceAlt : 'transparent';
-  const fg = variant === 'primary' ? colors.accentText : variant === 'danger' ? colors.dangerText : colors.text;
+    variant === 'primary' ? colors.accent : variant === 'danger' ? colors.danger : variant === 'secondary' ? tint : 'transparent';
+  const fg =
+    variant === 'primary' ? colors.accentText : variant === 'danger' ? colors.dangerText : colors.accent;
 
   return (
     <Pressable
@@ -32,9 +35,10 @@ export function Button({ title, variant = 'primary', loading, disabled, onPress,
         styles.base,
         {
           backgroundColor: bg,
-          borderRadius: radius.md,
+          borderRadius: radius.lg,
           paddingHorizontal: spacing.lg,
-          opacity: isDisabled ? 0.5 : pressed ? 0.85 : 1,
+          opacity: isDisabled ? 0.45 : pressed ? 0.8 : 1,
+          transform: [{ scale: pressed ? 0.98 : 1 }],
         },
       ]}
       {...rest}
@@ -52,7 +56,7 @@ export function Button({ title, variant = 'primary', loading, disabled, onPress,
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: 52, // >= 44pt touch target
+    minHeight: 50, // >= 44pt touch target
     alignItems: 'center',
     justifyContent: 'center',
   },

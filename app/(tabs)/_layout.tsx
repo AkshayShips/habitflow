@@ -1,16 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
+import { Platform, StyleSheet } from 'react-native';
 
 import { useTheme } from '@/theme/useTheme';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
-const tabs: { name: string; title: string; icon: IconName }[] = [
-  { name: 'index', title: 'Today', icon: 'sunny-outline' },
-  { name: 'habits', title: 'Habits', icon: 'checkmark-done-outline' },
-  { name: 'stats', title: 'Stats', icon: 'stats-chart-outline' },
-  { name: 'coach', title: 'Coach', icon: 'chatbubble-ellipses-outline' },
-  { name: 'profile', title: 'Profile', icon: 'person-circle-outline' },
+const tabs: { name: string; title: string; icon: IconName; active: IconName }[] = [
+  { name: 'index', title: 'Today', icon: 'today-outline', active: 'today' },
+  { name: 'habits', title: 'Habits', icon: 'checkmark-circle-outline', active: 'checkmark-circle' },
+  { name: 'stats', title: 'Stats', icon: 'stats-chart-outline', active: 'stats-chart' },
+  { name: 'coach', title: 'Coach', icon: 'chatbubble-ellipses-outline', active: 'chatbubble-ellipses' },
+  { name: 'profile', title: 'Profile', icon: 'person-circle-outline', active: 'person-circle' },
 ];
 
 export default function TabsLayout() {
@@ -21,7 +22,11 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.textSecondary,
-        tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
+        tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth,
+          // react-native-web does not add the iOS safe-area/label padding, so give the bar room for its labels.
+          ...(Platform.OS === 'web' ? { height: 68, paddingTop: 6, paddingBottom: 10 } : null),
+        },
+        tabBarLabelStyle: { fontSize: 10.5, fontWeight: '600', paddingBottom: 2, paddingTop: 2 },
       }}
     >
       {tabs.map((t) => (
@@ -31,7 +36,7 @@ export default function TabsLayout() {
           options={{
             title: t.title,
             tabBarAccessibilityLabel: `${t.title} tab`,
-            tabBarIcon: ({ color, size }) => <Ionicons name={t.icon} size={size} color={String(color)} />,
+            tabBarIcon: ({ color, size, focused }) => <Ionicons name={focused ? t.active : t.icon} size={size + 1} color={String(color)} />,
           }}
         />
       ))}

@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
 import { Group, ListRow } from '@/components/ui/Card';
+import { LargeHeader } from '@/components/ui/LargeHeader';
 import { Text } from '@/components/ui/Text';
 import { useIsPro } from '@/lib/entitlements';
 import { sendMagicLink, signInWithApple, signOut } from '@/features/auth/api/auth';
@@ -51,26 +52,36 @@ export default function ProfileScreen() {
       style={{ flex: 1, backgroundColor: colors.bg }}
       contentContainerStyle={{ padding: spacing.lg, paddingTop: insets.top + spacing.md, gap: spacing.lg }}
     >
-      <Text variant="largeTitle">Profile</Text>
+      <LargeHeader title="Profile" />
 
-      <View style={{ backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.xs }}>
-        <Text variant="headline">{isGuest ? 'Guest' : (user?.email ?? 'Signed in')}</Text>
-        <Text secondary variant="footnote">
-          {isGuest ? 'Not backed up to an account yet.' : 'Your progress is saved to your account.'}
-        </Text>
+      <View style={{ backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.lg, flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+        <View style={{ width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accent }}>
+          <Text variant="title2" style={{ color: colors.accentText }}>
+            {(isGuest ? 'G' : (user?.email?.[0] ?? 'U')).toUpperCase()}
+          </Text>
+        </View>
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text variant="headline" numberOfLines={1}>{isGuest ? 'Guest' : (user?.email ?? 'Signed in')}</Text>
+          <Text secondary variant="footnote">
+            {isGuest ? 'Not backed up to an account yet' : 'Your progress is saved to your account'}
+          </Text>
+        </View>
+        <View style={{ backgroundColor: colors.surfaceAlt, borderRadius: 999, paddingHorizontal: spacing.sm + 2, paddingVertical: 4 }}>
+          <Text variant="caption" secondary>{isPro ? 'Pro' : 'Free'}</Text>
+        </View>
       </View>
 
       {!isPro && (
         <Group>
-          <ListRow icon="sparkles" title="Upgrade to Pro" subtitle="Unlimited habits, full history, more coach messages" onPress={() => router.push('/paywall')} last />
+          <ListRow icon="sparkles" iconColor="#8E7CE0" title="Upgrade to Pro" subtitle="Unlimited habits, full history, more coach messages" onPress={() => router.push('/paywall')} last />
         </Group>
       )}
 
       <Group>
-        <ListRow icon="trophy-outline" title="Achievements" onPress={() => router.push('/achievements')} />
-        <ListRow icon="book-outline" title="Journal" onPress={() => router.push('/journal')} />
-        <ListRow icon="settings-outline" title="Settings" onPress={() => router.push('/settings')} />
-        <ListRow icon="play-circle-outline" title="Replay welcome tour" onPress={() => router.push('/onboarding')} last />
+        <ListRow icon="trophy" iconColor="#E0A44A" title="Achievements" onPress={() => router.push('/achievements')} />
+        <ListRow icon="book" iconColor="#4FB286" title="Journal" onPress={() => router.push('/journal')} />
+        <ListRow icon="settings" iconColor="#7A8696" title="Settings" onPress={() => router.push('/settings')} />
+        <ListRow icon="play" iconColor="#5B8DEF" title="Replay welcome tour" onPress={() => router.push('/onboarding')} last />
       </Group>
 
       <View style={{ backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.sm }}>

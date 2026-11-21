@@ -1,4 +1,4 @@
-import { Pressable, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -13,84 +13,70 @@ interface Props {
   subtitle: string;
   done: boolean;
   streak: number;
+  last?: boolean;
   onToggle: () => void;
-  onOpen?: () => void;
 }
 
-export function HabitRow({ name, icon, color, subtitle, done, streak, onToggle, onOpen }: Props) {
-  const { colors, spacing, radius } = useTheme();
+/** One row of the Today list: colored icon tile, title, streak, and a large circular check. Whole row is the tap target. */
+export function HabitRow({ name, icon, color, subtitle, done, streak, last, onToggle }: Props) {
+  const { colors, spacing, isDark } = useTheme();
   const streakLabel = streak > 0 ? `${streak} ${streak === 1 ? 'day' : 'in a row'}` : null;
 
   return (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: colors.surface,
-        borderRadius: radius.lg,
-        borderWidth: 1,
-        borderColor: colors.border,
-        minHeight: 72,
-        paddingRight: spacing.xs,
+    <Pressable
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: done }}
+      accessibilityLabel={`${name}. ${subtitle}${streakLabel ? `. ${streakLabel}` : ''}`}
+      accessibilityHint={done ? 'Double tap to mark as not done' : 'Double tap to mark as done'}
+      onPress={() => {
+        void (done
+          ? Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+          : Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
+        onToggle();
       }}
+      style={({ pressed }) => ({
+        flexDirection: 'row', alignItems: 'center', paddingLeft: spacing.lg, minHeight: 68,
+        backgroundColor: pressed ? colors.surfaceAlt : 'transparent',
+      })}
     >
-      {/* Whole left area is the check-in target: one tap. */}
-      <Pressable
-        accessibilityRole="checkbox"
-        accessibilityState={{ checked: done }}
-        accessibilityLabel={`${name}. ${subtitle}${streakLabel ? `. ${streakLabel}` : ''}`}
-        accessibilityHint={done ? 'Double tap to mark as not done' : 'Double tap to mark as done'}
-        onPress={() => {
-          void (done
-            ? Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-            : Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
-          onToggle();
+      <View
+        style={{
+          width: 40, height: 40, borderRadius: 11, marginRight: spacing.md,
+          alignItems: 'center', justifyContent: 'center', backgroundColor: color, opacity: done ? 0.55 : 1,
         }}
-        style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md }}
       >
-        <View
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: radius.pill,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: done ? color : 'transparent',
-            borderWidth: 2,
-            borderColor: color,
-          }}
-        >
-          {done ? (
-            <Ionicons name="checkmark" size={24} color="#FFFFFF" />
-          ) : (
-            <HabitIcon name={icon} color={color} />
-          )}
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text
-            variant="headline"
-            style={done ? { textDecorationLine: 'line-through', opacity: 0.6 } : undefined}
-            numberOfLines={2}
-          >
+        <HabitIcon name={icon} color="#FFFFFF" size={22} />
+      </View>
+
+      <View
+        style={{
+          flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 68, paddingRight: spacing.lg,
+          borderBottomWidth: last ? 0 : StyleSheet.hairlineWidth, borderBottomColor: colors.border,
+        }}
+      >
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text variant="headline" numberOfLines={2} style={done ? { opacity: 0.5 } : undefined}>
             {name}
           </Text>
-          <Text variant="footnote" secondary numberOfLines={1}>
-            {streakLabel ? `${streakLabel} · ${subtitle}` : subtitle}
-          </Text>
+          <Text variant="footnote" secondary numberOfLines={1}>{subtitle}</Text>
         </View>
-      </Pressable>
 
-      {onOpen ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Edit ${name}`}
-          onPress={onOpen}
-          hitSlop={8}
-          style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
+        {streakLabel ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+            <Ionicons name="flame" size={15} color={isDark ? '#FFB340' : '#D9730D'} />
+            <Text variant="footnote" style={{ color: isDark ? '#FFB340' : '#B45F06', fontWeight: '600' }}>{streak}</Text>
+          </View>
+        ) : null}
+
+        <View
+          style={{
+            width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center',
+            backgroundColor: done ? color : 'transparent', borderWidth: 2, borderColor: done ? color : colors.border,
+          }}
         >
-          <Ionicons name="ellipsis-horizontal" size={20} color={colors.textSecondary} />
-        </Pressable>
-      ) : null}
-    </View>
+          {done ? <Ionicons name="checkmark" size={18} color="#FFFFFF" /> : null}
+        </View>
+      </View>
+    </Pressable>
   );
 }

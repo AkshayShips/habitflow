@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
-import { Pressable, Switch, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, Switch, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { useTheme } from '@/theme/useTheme';
 import { Text } from './Text';
@@ -32,6 +32,7 @@ export function Group({ children }: { children: ReactNode }) {
 }
 
 interface RowProps {
+  leading?: React.ReactNode;
   title: string;
   subtitle?: string;
   icon?: IconName;
@@ -45,37 +46,51 @@ interface RowProps {
   badge?: string;
 }
 
-export function ListRow({ title, subtitle, icon, iconColor, value, onPress, destructive, toggle, last, badge }: RowProps) {
+export function ListRow({ leading, title, subtitle, icon, iconColor, value, onPress, destructive, toggle, last, badge }: RowProps) {
   const { colors, spacing } = useTheme();
+  const tile = destructive ? colors.danger : (iconColor ?? colors.accent);
   const body = (
-    <View
-      style={{
-        flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 56,
-        paddingHorizontal: spacing.lg, paddingVertical: spacing.sm,
-        borderBottomWidth: last ? 0 : 1, borderBottomColor: colors.border,
-      }}
-    >
-      {icon ? <Ionicons name={icon} size={22} color={destructive ? colors.danger : (iconColor ?? colors.accent)} /> : null}
-      <View style={{ flex: 1 }}>
-        <Text style={destructive ? { color: colors.danger } : undefined}>{title}</Text>
-        {subtitle ? <Text variant="footnote" secondary>{subtitle}</Text> : null}
-      </View>
-      {badge ? (
-        <View style={{ backgroundColor: colors.accent, borderRadius: 999, paddingHorizontal: spacing.sm, paddingVertical: 2 }}>
-          <Text variant="caption" style={{ color: colors.accentText }}>{badge}</Text>
+    <View style={{ flexDirection: 'row', alignItems: 'center', paddingLeft: spacing.lg, minHeight: 56 }}>
+      {leading ? (
+        <View style={{ marginRight: spacing.md }}>{leading}</View>
+      ) : icon ? (
+        <View
+          style={{
+            width: 30, height: 30, borderRadius: 8, marginRight: spacing.md,
+            alignItems: 'center', justifyContent: 'center', backgroundColor: tile,
+          }}
+        >
+          <Ionicons name={icon} size={18} color="#FFFFFF" />
         </View>
       ) : null}
-      {value ? <Text secondary>{value}</Text> : null}
-      {toggle ? (
-        <Switch
-          value={toggle.value}
-          onValueChange={toggle.onChange}
-          accessibilityLabel={title}
-          trackColor={{ true: colors.accent, false: colors.surfaceAlt }}
-        />
-      ) : onPress ? (
-        <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
-      ) : null}
+      <View
+        style={{
+          flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: 56,
+          paddingVertical: spacing.sm, paddingRight: spacing.lg,
+          borderBottomWidth: last ? 0 : StyleSheet.hairlineWidth, borderBottomColor: colors.border,
+        }}
+      >
+        <View style={{ flex: 1 }}>
+          <Text style={destructive ? { color: colors.danger } : undefined}>{title}</Text>
+          {subtitle ? <Text variant="footnote" secondary>{subtitle}</Text> : null}
+        </View>
+        {badge ? (
+          <View style={{ backgroundColor: colors.accent, borderRadius: 999, paddingHorizontal: spacing.sm, paddingVertical: 2 }}>
+            <Text variant="caption" style={{ color: colors.accentText }}>{badge}</Text>
+          </View>
+        ) : null}
+        {value ? <Text secondary>{value}</Text> : null}
+        {toggle ? (
+          <Switch
+            value={toggle.value}
+            onValueChange={toggle.onChange}
+            accessibilityLabel={title}
+            trackColor={{ true: colors.success, false: colors.surfaceAlt }}
+          />
+        ) : onPress ? (
+          <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+        ) : null}
+      </View>
     </View>
   );
   if (!onPress || toggle) return <View accessible={!toggle}>{body}</View>;
@@ -84,7 +99,7 @@ export function ListRow({ title, subtitle, icon, iconColor, value, onPress, dest
       accessibilityRole="button"
       accessibilityLabel={[title, value, subtitle].filter(Boolean).join('. ')}
       onPress={onPress}
-      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+      style={({ pressed }) => ({ backgroundColor: pressed ? colors.surfaceAlt : 'transparent' })}
     >
       {body}
     </Pressable>
@@ -100,9 +115,9 @@ export function ProgressBar({ value, color, label }: { value: number; color?: st
       accessibilityRole="progressbar"
       accessibilityLabel={label}
       accessibilityValue={{ min: 0, max: 100, now: Math.round(pct * 100) }}
-      style={{ height: 10, borderRadius: 5, backgroundColor: colors.surfaceAlt, overflow: 'hidden' }}
+      style={{ height: 8, borderRadius: 4, backgroundColor: colors.surfaceAlt, overflow: 'hidden' }}
     >
-      <View style={{ height: 10, width: `${pct * 100}%`, backgroundColor: color ?? colors.accent, borderRadius: 5 }} />
+      <View style={{ height: 8, width: `${pct * 100}%`, backgroundColor: color ?? colors.accent, borderRadius: 4 }} />
     </View>
   );
 }

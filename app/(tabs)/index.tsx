@@ -5,7 +5,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EmptyState, ErrorState, ListSkeleton } from '@/components/ui/StateViews';
 import { OfflineBanner } from '@/components/ui/OfflineBanner';
-import { Card, ProgressBar } from '@/components/ui/Card';
+import { Card, Group, SectionLabel } from '@/components/ui/Card';
+import { LargeHeader } from '@/components/ui/LargeHeader';
+import { ProgressRing } from '@/components/ui/ProgressRing';
 import { Text } from '@/components/ui/Text';
 import { MOCK_XP } from '@/features/preview/mock';
 import { HabitRow } from '@/features/habits/components/HabitRow';
@@ -13,6 +15,11 @@ import { useHabits, useLogs, useStreaks, useToggleDone, useTodayStr } from '@/fe
 import { addDays, weekStart } from '@/features/habits/logic/dates';
 import { describeCadence, isScheduledOn } from '@/features/habits/logic/schedule';
 import { useTheme } from '@/theme/useTheme';
+
+const greeting = () => {
+  const h = new Date().getHours();
+  return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+};
 
 const longDate = (s: string) => {
   const [y, m, d] = s.split('-').map(Number) as [number, number, number];
@@ -64,10 +71,7 @@ export default function TodayScreen() {
         />
       }
     >
-      <View style={{ gap: spacing.xs }}>
-        <Text variant="largeTitle">Today</Text>
-        <Text secondary>{longDate(today)}</Text>
-      </View>
+      <LargeHeader title={greeting()} subtitle={longDate(today)} />
 
       <OfflineBanner />
 
@@ -89,22 +93,37 @@ export default function TodayScreen() {
         <EmptyState title="Nothing scheduled today" body="Enjoy the day off. Your habits will be back on their next scheduled day." />
       ) : (
         <>
-          <Card style={{ gap: spacing.sm }}>
-            <Text accessibilityLiveRegion="polite" variant="headline">
-              {doneCount === rows.length ? 'All done for today. Nice and steady.' : `${doneCount} of ${rows.length} done`}
-            </Text>
-            <ProgressBar value={rows.length ? doneCount / rows.length : 0} label={`${doneCount} of ${rows.length} habits done today`} />
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Level ${MOCK_XP.level}, ${MOCK_XP.xp} XP. Opens achievements.`}
-              onPress={() => router.push('/achievements')}
-              style={{ minHeight: 44, justifyContent: 'center' }}
+          <Card style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.lg }}>
+            <ProgressRing
+              progress={rows.length ? doneCount / rows.length : 0}
+              label={`${doneCount} of ${rows.length} habits done today`}
+              color={doneCount === rows.length ? colors.success : colors.accent}
             >
-              <Text variant="footnote" secondary>Level {MOCK_XP.level} · {MOCK_XP.xp} XP · View achievements ›</Text>
-            </Pressable>
+              <Text variant="title2">{doneCount}/{rows.length}</Text>
+            </ProgressRing>
+            <View style={{ flex: 1, gap: spacing.xs }}>
+              <Text accessibilityLiveRegion="polite" variant="title2">
+                {doneCount === rows.length ? 'All done' : doneCount === 0 ? 'Let’s begin' : 'Keep going'}
+              </Text>
+              <Text secondary>
+                {doneCount === rows.length ? 'Nice and steady today.' : `${rows.length - doneCount} left for today`}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Level ${MOCK_XP.level}, ${MOCK_XP.xp} XP. Opens achievements.`}
+                onPress={() => router.push('/achievements')}
+                style={{ minHeight: 44, justifyContent: 'center' }}
+              >
+                <Text variant="footnote" style={{ color: colors.accent, fontWeight: '600' }}>
+                  Level {MOCK_XP.level} · {MOCK_XP.xp} XP ›
+                </Text>
+              </Pressable>
+            </View>
           </Card>
-          <View style={{ gap: spacing.sm }}>
-            {rows.map(({ habit, done, subtitle }) => (
+
+          <SectionLabel>Habits</SectionLabel>
+          <Group>
+            {rows.map(({ habit, done, subtitle }, i) => (
               <HabitRow
                 key={habit.id}
                 name={habit.name}
@@ -112,11 +131,12 @@ export default function TodayScreen() {
                 color={habit.color}
                 subtitle={subtitle}
                 done={done}
+                last={i === rows.length - 1}
                 streak={streaks.get(habit.id)?.current ?? 0}
                 onToggle={() => toggle.mutate({ habitId: habit.id, date: today, done: !done })}
               />
             ))}
-          </View>
+          </Group>
         </>
       )}
     </ScrollView>

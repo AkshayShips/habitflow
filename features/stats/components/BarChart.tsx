@@ -8,7 +8,7 @@ const HEIGHT = 120;
 
 /** Simple bar chart. Each bar is its own accessibility element ("Mon: 80%"), since a chart is otherwise invisible to VoiceOver. */
 export function BarChart({ buckets, locked }: { buckets: Bucket[]; locked?: (b: Bucket) => boolean }) {
-  const { colors, spacing, radius } = useTheme();
+  const { colors, spacing } = useTheme();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: spacing.xs, height: HEIGHT + 24 }}>
       {buckets.map((b) => {
@@ -25,7 +25,7 @@ export function BarChart({ buckets, locked }: { buckets: Bucket[]; locked?: (b: 
               style={{
                 width: '100%',
                 height: h,
-                borderRadius: radius.sm,
+                borderTopLeftRadius: 7, borderTopRightRadius: 7, borderBottomLeftRadius: 3, borderBottomRightRadius: 3,
                 backgroundColor: isLocked || b.rate === null ? colors.surfaceAlt : colors.accent,
               }}
             />

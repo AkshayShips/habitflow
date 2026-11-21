@@ -18,19 +18,20 @@ export const spacing = {
 export const radius = {
   sm: 8,
   md: 12,
-  lg: 20,
+  lg: 16,
+  xl: 24,
   pill: 999,
 } as const;
 
 export const typography = {
-  largeTitle: { fontSize: 34, lineHeight: 41, fontWeight: '700' },
-  title1: { fontSize: 28, lineHeight: 34, fontWeight: '700' },
-  title2: { fontSize: 22, lineHeight: 28, fontWeight: '600' },
-  headline: { fontSize: 17, lineHeight: 22, fontWeight: '600' },
-  body: { fontSize: 17, lineHeight: 22, fontWeight: '400' },
-  callout: { fontSize: 16, lineHeight: 21, fontWeight: '400' },
-  footnote: { fontSize: 13, lineHeight: 18, fontWeight: '400' },
-  caption: { fontSize: 12, lineHeight: 16, fontWeight: '500' },
+  largeTitle: { fontSize: 34, lineHeight: 41, fontWeight: '700', letterSpacing: 0.4 },
+  title1: { fontSize: 28, lineHeight: 34, fontWeight: '700', letterSpacing: 0.36 },
+  title2: { fontSize: 22, lineHeight: 28, fontWeight: '700', letterSpacing: 0.35 },
+  headline: { fontSize: 17, lineHeight: 22, fontWeight: '600', letterSpacing: -0.4 },
+  body: { fontSize: 17, lineHeight: 22, fontWeight: '400', letterSpacing: -0.4 },
+  callout: { fontSize: 16, lineHeight: 21, fontWeight: '400', letterSpacing: -0.3 },
+  footnote: { fontSize: 13, lineHeight: 18, fontWeight: '400', letterSpacing: -0.1 },
+  caption: { fontSize: 12, lineHeight: 16, fontWeight: '500', letterSpacing: 0 },
 } as const;
 
 export type TypographyVariant = keyof typeof typography;
@@ -52,12 +53,12 @@ export interface ColorScheme {
 
 // Calm palette: soft blue accent, no aggressive reds (the product is "calm, not guilt-driven").
 export const lightColors: ColorScheme = {
-  bg: '#F7F8FA',
+  bg: '#F2F2F7', // iOS grouped background
   surface: '#FFFFFF',
-  surfaceAlt: '#EEF0F4',
-  border: '#D9DDE4',
-  text: '#14171C', // on bg ~ 16:1
-  textSecondary: '#566070', // on bg ~ 6:1
+  surfaceAlt: '#E9E9EE',
+  border: '#DCDCE1',
+  text: '#0A0A0C', // on bg ~ 17:1
+  textSecondary: '#66666B', // on bg ~ 5:1, on surface ~ 5.6:1
   accent: '#2F5FD0', // white on accent ~ 6.2:1
   accentText: '#FFFFFF',
   success: '#1F7A4D',
@@ -67,18 +68,18 @@ export const lightColors: ColorScheme = {
 };
 
 export const darkColors: ColorScheme = {
-  bg: '#0E1013',
-  surface: '#171A1F',
-  surfaceAlt: '#20242B',
-  border: '#2C313A',
-  text: '#F2F4F7', // on bg ~ 16:1
-  textSecondary: '#A3ACB9', // on bg ~ 8:1
-  accent: '#7EA2F5', // dark text on accent ~ 7:1
-  accentText: '#0E1013',
+  bg: '#000000',
+  surface: '#1C1C1E',
+  surfaceAlt: '#2C2C2E',
+  border: '#38383A',
+  text: '#F5F5F7', // ~ 18:1
+  textSecondary: '#A1A1A6', // on surface ~ 6.6:1
+  accent: '#7EA2F5', // dark text on accent ~ 8:1
+  accentText: '#000000',
   success: '#5CC995',
   warning: '#E0A44A',
   danger: '#F2766E',
-  dangerText: '#0E1013',
+  dangerText: '#000000',
 };
 
 // Habit color choices offered in the habit editor (Phase 2).

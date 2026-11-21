@@ -23,7 +23,7 @@ export default function RemindersScreen() {
   return (
     <Screen>
       <Group>
-        <ListRow icon="notifications-outline" title="Daily reminder" toggle={{ value: enabled, onChange: setEnabled }} last />
+        <ListRow icon="notifications" iconColor="#E07B5B" title="Daily reminder" toggle={{ value: enabled, onChange: setEnabled }} last />
       </Group>
 
       {enabled ? (
@@ -37,7 +37,7 @@ export default function RemindersScreen() {
 
           <SectionLabel>Quiet hours</SectionLabel>
           <Group>
-            <ListRow icon="moon-outline" title="Pause 10 PM to 7 AM" toggle={{ value: quiet, onChange: setQuiet }} last />
+            <ListRow icon="moon" iconColor="#8E7CE0" title="Pause 10 PM to 7 AM" toggle={{ value: quiet, onChange: setQuiet }} last />
           </Group>
 
           <SectionLabel>Include these habits</SectionLabel>

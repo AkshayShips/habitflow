@@ -3,6 +3,8 @@ import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AdBanner } from '@/components/ui/AdBanner';
+import { Ionicons } from '@expo/vector-icons';
+import { LargeHeader } from '@/components/ui/LargeHeader';
 import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { EmptyState, ErrorState, ListSkeleton } from '@/components/ui/StateViews';
 import { Text } from '@/components/ui/Text';
@@ -71,7 +73,7 @@ export default function StatsScreen() {
       style={{ flex: 1, backgroundColor: colors.bg }}
       contentContainerStyle={{ padding: spacing.lg, paddingTop: insets.top + spacing.md, gap: spacing.md }}
     >
-      <Text variant="largeTitle">Stats</Text>
+      <LargeHeader title="Stats" subtitle="Your progress" />
       <OfflineBanner />
 
       {loading ? (
@@ -94,9 +96,9 @@ export default function StatsScreen() {
           ) : (
             <>
               <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-                <Tile label="Completion" value={percent(summary.rate)} />
-                <Tile label="Perfect days" value={String(perfect)} />
-                <Tile label="Longest streak" value={String(longest)} />
+                <Tile icon="trending-up" tone="#4FB286" label="Completion" value={percent(summary.rate)} />
+                <Tile icon="star" tone="#E0A44A" label="Perfect days" value={String(perfect)} />
+                <Tile icon="flame" tone="#E07B5B" label="Best streak" value={String(longest)} />
               </View>
 
               <View style={card}>
@@ -143,16 +145,21 @@ export default function StatsScreen() {
   );
 }
 
-function Tile({ label, value }: { label: string; value: string }) {
+function Tile({ label, value, icon, tone }: { label: string; value: string; icon: React.ComponentProps<typeof Ionicons>['name']; tone: string }) {
   const { colors, spacing, radius } = useTheme();
   return (
     <View
       accessible
       accessibilityLabel={`${label}: ${value}`}
-      style={{ flex: 1, backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.md, gap: spacing.xs }}
+      style={{ flex: 1, backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.md, gap: spacing.sm }}
     >
-      <Text variant="title2">{value}</Text>
-      <Text variant="caption" secondary>{label}</Text>
+      <View style={{ width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: tone }}>
+        <Ionicons name={icon} size={16} color="#FFFFFF" />
+      </View>
+      <View>
+        <Text variant="title2">{value}</Text>
+        <Text variant="caption" secondary>{label}</Text>
+      </View>
     </View>
   );
 }

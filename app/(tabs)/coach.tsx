@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Card';
+import { LargeHeader } from '@/components/ui/LargeHeader';
 import { Text } from '@/components/ui/Text';
 import { COACH_CANNED_REPLY, COACH_INTRO, COACH_STARTERS, type CoachMessage } from '@/features/preview/mock';
 import { useIsPro } from '@/lib/entitlements';
@@ -49,7 +50,7 @@ export default function CoachScreen() {
       style={{ flex: 1, backgroundColor: colors.bg }}
     >
       <View style={{ paddingTop: insets.top + spacing.md, paddingHorizontal: spacing.lg, paddingBottom: spacing.sm, gap: spacing.xs }}>
-        <Text variant="largeTitle">Coach</Text>
+        <LargeHeader title="Coach" />
         <Text variant="footnote" secondary>
           {isPro ? 'Unlimited messages' : `${remaining} of ${FREE_DAILY_MESSAGES} free messages left today`}
           {' · AI-generated, not professional advice'}
@@ -71,8 +72,10 @@ export default function CoachScreen() {
               alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
               maxWidth: '85%',
               backgroundColor: m.role === 'user' ? colors.accent : colors.surface,
-              borderRadius: radius.lg,
-              padding: spacing.md,
+              borderRadius: 20,
+              ...(m.role === 'user' ? { borderBottomRightRadius: 6 } : { borderBottomLeftRadius: 6 }),
+              paddingHorizontal: spacing.md,
+              paddingVertical: 10,
             }}
           >
             <Text style={{ color: m.role === 'user' ? colors.accentText : colors.text }}>{m.text}</Text>
@@ -117,7 +120,7 @@ export default function CoachScreen() {
           placeholderTextColor={colors.textSecondary}
           accessibilityLabel="Message to coach"
           style={{
-            flex: 1, minHeight: 44, maxHeight: 120, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border,
+            flex: 1, minHeight: 44, maxHeight: 120, borderRadius: 22, borderWidth: 1, borderColor: colors.border,
             backgroundColor: colors.bg, color: colors.text, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, fontSize: 17,
           }}
         />
