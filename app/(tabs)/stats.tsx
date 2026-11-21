@@ -16,6 +16,7 @@ import {
   buildIndex, heatmap, historyLimit, monthSeries, percent, perfectDays, perHabit, rangeFor, scoreRange,
   weekSeries, yearSeries, type Period, type StatHabit,
 } from '@/features/stats/logic/stats';
+import { InsightsSection } from '@/features/momentum/components/InsightsSection';
 import { useIsPro } from '@/lib/entitlements';
 import { useTheme } from '@/theme/useTheme';
 import { onColor, tileColors } from '@/theme/tokens';
@@ -122,6 +123,8 @@ export default function StatsScreen() {
               </Text>
             )}
           </View>
+
+          <InsightsSection habits={habitsQ.data ?? []} logs={logsQ.data ?? []} today={today} />
 
           {!locked && (
             <View style={card}>

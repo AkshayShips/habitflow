@@ -10,6 +10,7 @@ import { LargeHeader } from '@/components/ui/LargeHeader';
 import { ProgressRing } from '@/components/ui/ProgressRing';
 import { Text } from '@/components/ui/Text';
 import { showToast } from '@/components/ui/Toast';
+import { MomentumCard } from '@/features/momentum/components/MomentumCard';
 import { HabitRow } from '@/features/habits/components/HabitRow';
 import { useHabits, useLogs, useStreaks, useToggleDone, useTodayStr } from '@/features/habits/hooks/useHabits';
 import { addDays, weekStart } from '@/features/habits/logic/dates';
@@ -116,6 +117,8 @@ export default function TodayScreen() {
               ) : null}
             </View>
           </Card>
+
+          <MomentumCard habits={habitsQ.data ?? []} logs={logsQ.data ?? []} today={today} />
 
           <SectionLabel>Habits</SectionLabel>
           <Group>
