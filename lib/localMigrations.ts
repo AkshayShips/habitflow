@@ -53,4 +53,35 @@ export const MIGRATIONS: string[] = [
     value TEXT NOT NULL
   );
   `,
+  // v3: Adaptive Momentum (effort levels + experiments), synced like habits/logs
+  `
+  CREATE TABLE habit_effort_levels (
+    id           TEXT PRIMARY KEY NOT NULL,
+    habit_id     TEXT NOT NULL REFERENCES habits (id) ON DELETE CASCADE,
+    level        TEXT NOT NULL CHECK (level IN ('minimum', 'standard', 'extended')),
+    target_value REAL NOT NULL CHECK (target_value > 0),
+    created_at   TEXT NOT NULL,
+    updated_at   TEXT NOT NULL,
+    deleted_at   TEXT,
+    dirty        INTEGER NOT NULL DEFAULT 1,
+    UNIQUE (habit_id, level)
+  );
+
+  CREATE TABLE momentum_experiments (
+    id                    TEXT PRIMARY KEY NOT NULL,
+    habit_id              TEXT NOT NULL REFERENCES habits (id) ON DELETE CASCADE,
+    start_date            TEXT NOT NULL,
+    duration_days         INTEGER NOT NULL CHECK (duration_days BETWEEN 3 AND 60),
+    baseline_target_value REAL NOT NULL CHECK (baseline_target_value > 0),
+    trial_target_value    REAL NOT NULL CHECK (trial_target_value > 0),
+    status                TEXT NOT NULL DEFAULT 'running' CHECK (status IN ('running', 'kept', 'discarded')),
+    decided_at            TEXT,
+    created_at            TEXT NOT NULL,
+    updated_at            TEXT NOT NULL,
+    deleted_at            TEXT,
+    dirty                 INTEGER NOT NULL DEFAULT 1
+  );
+  CREATE UNIQUE INDEX momentum_experiments_one_running
+    ON momentum_experiments (habit_id) WHERE status = 'running' AND deleted_at IS NULL;
+  `,
 ];

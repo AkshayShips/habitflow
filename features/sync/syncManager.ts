@@ -31,6 +31,7 @@ export function syncNow(userId: string): Promise<SyncResult | null> {
       if (result.pulled > 0 || result.pushed > 0) {
         void queryClient.invalidateQueries({ queryKey: ['habits', userId] });
         void queryClient.invalidateQueries({ queryKey: ['logs', userId] });
+        void queryClient.invalidateQueries({ queryKey: ['momentum', userId] });
       }
       return result;
     } catch (e) {

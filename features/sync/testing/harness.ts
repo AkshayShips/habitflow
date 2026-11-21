@@ -12,6 +12,8 @@ import {
   type Cursor,
   type PullPage,
   type RemoteApi,
+  type RemoteEffortLevel,
+  type RemoteExperiment,
   type RemoteHabit,
   type RemoteLog,
 } from '../types';
@@ -25,6 +27,8 @@ const afterCursor = (r: { updated_at: string; id: string }, c: Cursor | null) =>
 export class FakeServer implements RemoteApi {
   habits = new Map<string, RemoteHabit>();
   logs = new Map<string, RemoteLog>(); // key: habit_id|log_date
+  effort = new Map<string, RemoteEffortLevel>(); // key: habit_id|level
+  experiments = new Map<string, RemoteExperiment>();
   offline = false;
   rejectHabit: (h: RemoteHabit) => boolean = () => false;
   /** Called after rows are received but before the response returns (lets a test race a local edit). */
@@ -70,6 +74,43 @@ export class FakeServer implements RemoteApi {
     this.onUpsert?.();
   }
 
+  async upsertEffortLevels(rows: RemoteEffortLevel[]) {
+    this.guard();
+    for (const r of rows) {
+      if (!this.habits.has(r.habit_id)) throw new SyncRemoteError('FK violation', false);
+    }
+    for (const r of rows) {
+      const key = `${r.habit_id}|${r.level}`;
+      const ex = this.effort.get(key);
+      if (ex && ms(r.updated_at) < ms(ex.updated_at)) continue;
+      this.effort.set(key, ex && r.updated_at === ex.updated_at ? { ...r, updated_at: this.serverNow() } : { ...r });
+    }
+  }
+
+  async upsertExperiments(rows: RemoteExperiment[]) {
+    this.guard();
+    for (const r of rows) {
+      if (!this.habits.has(r.habit_id)) throw new SyncRemoteError('FK violation', false);
+      const otherRunning = [...this.experiments.values()].some(
+        (e) => e.habit_id === r.habit_id && e.id !== r.id && e.status === 'running' && !e.deleted_at,
+      );
+      if (r.status === 'running' && !r.deleted_at && otherRunning) throw new SyncRemoteError('one running per habit', false);
+      if (r.status !== 'running' && !r.decided_at) throw new SyncRemoteError('decided_at required', false);
+    }
+    for (const r of rows) {
+      const ex = this.experiments.get(r.id);
+      if (ex && ms(r.updated_at) < ms(ex.updated_at)) continue;
+      this.experiments.set(r.id, ex && r.updated_at === ex.updated_at ? { ...r, updated_at: this.serverNow() } : { ...r });
+    }
+  }
+
+  async pullEffortLevels(cursor: Cursor | null, limit: number) {
+    return this.page([...this.effort.values()], cursor, limit);
+  }
+  async pullExperiments(cursor: Cursor | null, limit: number) {
+    return this.page([...this.experiments.values()], cursor, limit);
+  }
+
   private page<T extends { updated_at: string; id: string }>(all: T[], cursor: Cursor | null, limit: number): PullPage<T> {
     this.guard();
     const rows = all
@@ -89,7 +130,7 @@ export class FakeServer implements RemoteApi {
 }
 
 /** The subset of expo-sqlite's API the store uses, on top of node:sqlite. */
-function adapt(raw: DatabaseSync) {
+export function adapt(raw: DatabaseSync) {
   return {
     async getAllAsync<T>(sql: string, params: unknown[] = []) {
       return raw.prepare(sql).all(...(params as never[])).map((r) => ({ ...r })) as T[];
@@ -168,6 +209,12 @@ export class Device {
       .prepare('SELECT id, log_date, status, deleted_at, dirty FROM habit_logs WHERE habit_id = ? ORDER BY log_date')
       .all(habitId)
       .map((r) => ({ ...r })) as { id: string; log_date: string; status: string; deleted_at: string | null; dirty: number }[];
+  }
+
+  dirtyMomentum() {
+    const a = this.raw.prepare('SELECT COUNT(*) AS n FROM habit_effort_levels WHERE dirty = 1').get() as { n: number };
+    const b = this.raw.prepare('SELECT COUNT(*) AS n FROM momentum_experiments WHERE dirty = 1').get() as { n: number };
+    return a.n + b.n;
   }
 
   dirtyCount() {

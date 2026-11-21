@@ -1,6 +1,15 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-import type { ApplyCount, Cursor, LocalStore, RemoteHabit, RemoteLog, SyncTable } from '../types';
+import type {
+  ApplyCount,
+  Cursor,
+  LocalStore,
+  RemoteEffortLevel,
+  RemoteExperiment,
+  RemoteHabit,
+  RemoteLog,
+  SyncTable,
+} from '../types';
 
 type Db = Pick<SQLiteDatabase, 'getAllAsync' | 'getFirstAsync' | 'runAsync' | 'withTransactionAsync'>;
 
@@ -55,6 +64,27 @@ export class SqliteLocalStore implements LocalStore {
     const rows = await this.db.getAllAsync<LogDbRow>(
       `SELECT id, habit_id, log_date, value, status, note, mood, logged_at, updated_at, deleted_at
          FROM habit_logs WHERE dirty = 1${clause} ORDER BY updated_at, id LIMIT ?`,
+      [...params, limit],
+    );
+    return rows.map((r) => ({ ...r, user_id: this.userId }));
+  }
+
+  async getDirtyEffortLevels(limit: number, exclude: string[]): Promise<RemoteEffortLevel[]> {
+    const { clause, params } = this.notIn(exclude);
+    const rows = await this.db.getAllAsync<Omit<RemoteEffortLevel, 'user_id'>>(
+      `SELECT id, habit_id, level, target_value, created_at, updated_at, deleted_at
+         FROM habit_effort_levels WHERE dirty = 1${clause} ORDER BY updated_at, id LIMIT ?`,
+      [...params, limit],
+    );
+    return rows.map((r) => ({ ...r, user_id: this.userId }));
+  }
+
+  async getDirtyExperiments(limit: number, exclude: string[]): Promise<RemoteExperiment[]> {
+    const { clause, params } = this.notIn(exclude);
+    const rows = await this.db.getAllAsync<Omit<RemoteExperiment, 'user_id'>>(
+      `SELECT id, habit_id, start_date, duration_days, baseline_target_value, trial_target_value, status, decided_at,
+              created_at, updated_at, deleted_at
+         FROM momentum_experiments WHERE dirty = 1${clause} ORDER BY updated_at, id LIMIT ?`,
       [...params, limit],
     );
     return rows.map((r) => ({ ...r, user_id: this.userId }));
@@ -150,6 +180,94 @@ export class SqliteLocalStore implements LocalStore {
         }
         void matchedById;
         count.applied += 1;
+      }
+    });
+    return count;
+  }
+
+  /** Identity of an effort level is (habit_id, level); two devices may have created it with different ids. */
+  async applyRemoteEffortLevels(rows: RemoteEffortLevel[]): Promise<ApplyCount> {
+    const count: ApplyCount = { applied: 0, skipped: 0 };
+    await this.db.withTransactionAsync(async () => {
+      for (const r of rows) {
+        const parent = await this.db.getFirstAsync<{ id: string }>('SELECT id FROM habits WHERE id = ?', [r.habit_id]);
+        if (!parent) {
+          count.skipped += 1;
+          continue;
+        }
+        let ex = await this.db.getFirstAsync<{ id: string; updated_at: string; dirty: number }>(
+          'SELECT id, updated_at, dirty FROM habit_effort_levels WHERE habit_id = ? AND level = ?',
+          [r.habit_id, r.level],
+        );
+        if (!ex) {
+          ex = await this.db.getFirstAsync<{ id: string; updated_at: string; dirty: number }>(
+            'SELECT id, updated_at, dirty FROM habit_effort_levels WHERE id = ?',
+            [r.id],
+          );
+        }
+        if (ex && ex.dirty === 1 && newer(ex.updated_at, r.updated_at)) {
+          count.skipped += 1;
+          continue;
+        }
+        try {
+          if (ex) {
+            await this.db.runAsync(
+              `UPDATE habit_effort_levels SET id = ?, habit_id = ?, level = ?, target_value = ?, updated_at = ?,
+                      deleted_at = ?, dirty = 0 WHERE id = ?`,
+              [r.id, r.habit_id, r.level, r.target_value, r.updated_at, r.deleted_at, ex.id],
+            );
+          } else {
+            await this.db.runAsync(
+              `INSERT INTO habit_effort_levels (id, habit_id, level, target_value, created_at, updated_at, deleted_at, dirty)
+               VALUES (?, ?, ?, ?, ?, ?, ?, 0)`,
+              [r.id, r.habit_id, r.level, r.target_value, r.created_at, r.updated_at, r.deleted_at],
+            );
+          }
+          count.applied += 1;
+        } catch {
+          count.skipped += 1; // a bad row must not abort the whole page (the cursor would never advance)
+        }
+      }
+    });
+    return count;
+  }
+
+  async applyRemoteExperiments(rows: RemoteExperiment[]): Promise<ApplyCount> {
+    const count: ApplyCount = { applied: 0, skipped: 0 };
+    await this.db.withTransactionAsync(async () => {
+      for (const r of rows) {
+        const parent = await this.db.getFirstAsync<{ id: string }>('SELECT id FROM habits WHERE id = ?', [r.habit_id]);
+        if (!parent) {
+          count.skipped += 1;
+          continue;
+        }
+        const ex = await this.db.getFirstAsync<{ updated_at: string; dirty: number }>(
+          'SELECT updated_at, dirty FROM momentum_experiments WHERE id = ?',
+          [r.id],
+        );
+        if (ex && ex.dirty === 1 && newer(ex.updated_at, r.updated_at)) {
+          count.skipped += 1;
+          continue;
+        }
+        try {
+          await this.db.runAsync(
+            `INSERT INTO momentum_experiments (id, habit_id, start_date, duration_days, baseline_target_value,
+                    trial_target_value, status, decided_at, created_at, updated_at, deleted_at, dirty)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+             ON CONFLICT (id) DO UPDATE SET
+               habit_id = excluded.habit_id, start_date = excluded.start_date, duration_days = excluded.duration_days,
+               baseline_target_value = excluded.baseline_target_value, trial_target_value = excluded.trial_target_value,
+               status = excluded.status, decided_at = excluded.decided_at, updated_at = excluded.updated_at,
+               deleted_at = excluded.deleted_at, dirty = 0`,
+            [
+              r.id, r.habit_id, r.start_date, r.duration_days, r.baseline_target_value, r.trial_target_value,
+              r.status, r.decided_at, r.created_at, r.updated_at, r.deleted_at,
+            ],
+          );
+          count.applied += 1;
+        } catch {
+          count.skipped += 1; // e.g. a second "running" experiment for the same habit
+        }
       }
     });
     return count;

@@ -2,7 +2,7 @@
  * Sync model: SQLite is the source of truth; Supabase is the replica that lets devices converge.
  * Conflict rule: last-write-wins on updated_at (the server also enforces this in lww_guard()).
  */
-export type SyncTable = 'habits' | 'habit_logs';
+export type SyncTable = 'habits' | 'habit_logs' | 'habit_effort_levels' | 'momentum_experiments';
 
 export interface RemoteHabit {
   id: string;
@@ -38,6 +38,36 @@ export interface RemoteLog {
   deleted_at: string | null;
 }
 
+export type EffortLevelName = 'minimum' | 'standard' | 'extended';
+
+export interface RemoteEffortLevel {
+  id: string;
+  user_id: string;
+  habit_id: string;
+  level: EffortLevelName;
+  target_value: number;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export type ExperimentStatus = 'running' | 'kept' | 'discarded';
+
+export interface RemoteExperiment {
+  id: string;
+  user_id: string;
+  habit_id: string;
+  start_date: string;
+  duration_days: number;
+  baseline_target_value: number;
+  trial_target_value: number;
+  status: ExperimentStatus;
+  decided_at: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
 /** Keyset cursor over (updated_at, id): stable even when many rows share a timestamp. */
 export interface Cursor {
   ts: string;
@@ -65,6 +95,11 @@ export interface RemoteApi {
   upsertLogs(rows: RemoteLog[]): Promise<void>;
   pullHabits(cursor: Cursor | null, limit: number): Promise<PullPage<RemoteHabit>>;
   pullLogs(cursor: Cursor | null, limit: number): Promise<PullPage<RemoteLog>>;
+  /** Adaptive Momentum tables. Optional so older RemoteApi implementations keep working; both ends must provide them. */
+  upsertEffortLevels?(rows: RemoteEffortLevel[]): Promise<void>;
+  pullEffortLevels?(cursor: Cursor | null, limit: number): Promise<PullPage<RemoteEffortLevel>>;
+  upsertExperiments?(rows: RemoteExperiment[]): Promise<void>;
+  pullExperiments?(cursor: Cursor | null, limit: number): Promise<PullPage<RemoteExperiment>>;
 }
 
 export interface LocalStore {
@@ -76,6 +111,10 @@ export interface LocalStore {
   /** Applies rows with last-write-wins. Returns how many were applied vs skipped. */
   applyRemoteHabits(rows: RemoteHabit[]): Promise<ApplyCount>;
   applyRemoteLogs(rows: RemoteLog[]): Promise<ApplyCount>;
+  getDirtyEffortLevels?(limit: number, exclude: string[]): Promise<RemoteEffortLevel[]>;
+  getDirtyExperiments?(limit: number, exclude: string[]): Promise<RemoteExperiment[]>;
+  applyRemoteEffortLevels?(rows: RemoteEffortLevel[]): Promise<ApplyCount>;
+  applyRemoteExperiments?(rows: RemoteExperiment[]): Promise<ApplyCount>;
   getCursor(table: SyncTable): Promise<Cursor | null>;
   setCursor(table: SyncTable, cursor: Cursor): Promise<void>;
 }

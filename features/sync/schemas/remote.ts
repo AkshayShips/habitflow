@@ -37,3 +37,29 @@ export const remoteLogSchema = z.object({
   updated_at: ts,
   deleted_at: nullableTs,
 });
+
+export const remoteEffortLevelSchema = z.object({
+  id: z.uuid(),
+  user_id: z.uuid(),
+  habit_id: z.uuid(),
+  level: z.enum(['minimum', 'standard', 'extended']),
+  target_value: z.coerce.number().positive(),
+  created_at: ts,
+  updated_at: ts,
+  deleted_at: nullableTs,
+});
+
+export const remoteExperimentSchema = z.object({
+  id: z.uuid(),
+  user_id: z.uuid(),
+  habit_id: z.uuid(),
+  start_date: z.string().length(10),
+  duration_days: z.number().int().min(3).max(60),
+  baseline_target_value: z.coerce.number().positive(),
+  trial_target_value: z.coerce.number().positive(),
+  status: z.enum(['running', 'kept', 'discarded']),
+  decided_at: nullableTs,
+  created_at: ts,
+  updated_at: ts,
+  deleted_at: nullableTs,
+});

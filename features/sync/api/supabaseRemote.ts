@@ -1,10 +1,12 @@
 import { supabase } from '@/lib/supabase';
-import { remoteHabitSchema, remoteLogSchema } from '../schemas/remote';
+import { remoteEffortLevelSchema, remoteExperimentSchema, remoteHabitSchema, remoteLogSchema } from '../schemas/remote';
 import {
   SyncRemoteError,
   type Cursor,
   type PullPage,
   type RemoteApi,
+  type RemoteEffortLevel,
+  type RemoteExperiment,
   type RemoteHabit,
   type RemoteLog,
 } from '../types';
@@ -28,7 +30,7 @@ function toError(f: Failure): SyncRemoteError {
 }
 
 async function pull<T>(
-  table: 'habits' | 'habit_logs',
+  table: 'habits' | 'habit_logs' | 'habit_effort_levels' | 'momentum_experiments',
   cursor: Cursor | null,
   limit: number,
   parse: (row: unknown) => T | null,
@@ -79,5 +81,28 @@ export const supabaseRemote: RemoteApi = {
     pull<RemoteLog>('habit_logs', cursor, limit, (r) => {
       const p = remoteLogSchema.safeParse(r);
       return p.success ? (p.data as RemoteLog) : null;
+    }),
+
+  async upsertEffortLevels(rows: RemoteEffortLevel[]) {
+    // Identity is (habit_id, level), like logs.
+    const { error, status } = await supabase.from('habit_effort_levels').upsert(rows, { onConflict: 'habit_id,level' });
+    if (error) throw toError({ message: error.message, code: error.code, status });
+  },
+
+  async upsertExperiments(rows: RemoteExperiment[]) {
+    const { error, status } = await supabase.from('momentum_experiments').upsert(rows, { onConflict: 'id' });
+    if (error) throw toError({ message: error.message, code: error.code, status });
+  },
+
+  pullEffortLevels: (cursor, limit) =>
+    pull<RemoteEffortLevel>('habit_effort_levels', cursor, limit, (r) => {
+      const p = remoteEffortLevelSchema.safeParse(r);
+      return p.success ? (p.data as RemoteEffortLevel) : null;
+    }),
+
+  pullExperiments: (cursor, limit) =>
+    pull<RemoteExperiment>('momentum_experiments', cursor, limit, (r) => {
+      const p = remoteExperimentSchema.safeParse(r);
+      return p.success ? (p.data as RemoteExperiment) : null;
     }),
 };

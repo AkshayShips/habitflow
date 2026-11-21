@@ -21,8 +21,9 @@ interface Deps {
  * One full sync pass: push local changes, then pull remote changes.
  *
  * Order matters:
- *   push habits -> push logs   (logs reference habits)
- *   pull habits -> pull logs   (same reason, locally: foreign key)
+ *   push habits -> push logs -> push effort levels -> push experiments   (all reference habits)
+ *   pull habits -> pull logs -> pull effort levels -> pull experiments   (same reason, locally: foreign key)
+ * The Adaptive Momentum tables run only when both the local store and the remote provide them.
  *
  * Failure model:
  *   - transient error (network/auth/5xx): abort the pass; everything unsent stays dirty.
@@ -44,12 +45,40 @@ export async function runSync({ local, remote }: Deps): Promise<SyncResult> {
     mark: (rows) => local.markPushed('habit_logs', rows),
   });
 
+  if (local.getDirtyEffortLevels && remote.upsertEffortLevels) {
+    const { getDirtyEffortLevels, upsertEffortLevels } = { getDirtyEffortLevels: local.getDirtyEffortLevels.bind(local), upsertEffortLevels: remote.upsertEffortLevels.bind(remote) };
+    await pushTable('habit_effort_levels', result, {
+      read: (exclude) => getDirtyEffortLevels(PUSH_BATCH, exclude),
+      send: (rows) => upsertEffortLevels(rows),
+      mark: (rows) => local.markPushed('habit_effort_levels', rows),
+    });
+  }
+  if (local.getDirtyExperiments && remote.upsertExperiments) {
+    const { getDirtyExperiments, upsertExperiments } = { getDirtyExperiments: local.getDirtyExperiments.bind(local), upsertExperiments: remote.upsertExperiments.bind(remote) };
+    await pushTable('momentum_experiments', result, {
+      read: (exclude) => getDirtyExperiments(PUSH_BATCH, exclude),
+      send: (rows) => upsertExperiments(rows),
+      mark: (rows) => local.markPushed('momentum_experiments', rows),
+    });
+  }
+
   await pullTable('habits', result, local, (cursor) => remote.pullHabits(cursor, PULL_PAGE), (rows) =>
     local.applyRemoteHabits(rows),
   );
   await pullTable('habit_logs', result, local, (cursor) => remote.pullLogs(cursor, PULL_PAGE), (rows) =>
     local.applyRemoteLogs(rows),
   );
+
+  if (local.applyRemoteEffortLevels && remote.pullEffortLevels) {
+    const apply = local.applyRemoteEffortLevels.bind(local);
+    const pull = remote.pullEffortLevels.bind(remote);
+    await pullTable('habit_effort_levels', result, local, (cursor) => pull(cursor, PULL_PAGE), apply);
+  }
+  if (local.applyRemoteExperiments && remote.pullExperiments) {
+    const apply = local.applyRemoteExperiments.bind(local);
+    const pull = remote.pullExperiments.bind(remote);
+    await pullTable('momentum_experiments', result, local, (cursor) => pull(cursor, PULL_PAGE), apply);
+  }
 
   return result;
 }
