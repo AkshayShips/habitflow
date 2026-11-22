@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -8,40 +8,124 @@ import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Card';
 import { LargeHeader } from '@/components/ui/LargeHeader';
 import { Text } from '@/components/ui/Text';
-import { COACH_CANNED_REPLY, COACH_INTRO, COACH_STARTERS, type CoachMessage } from '@/features/preview/mock';
+import { useAuthStore } from '@/features/auth/store/authStore';
+import { askCoach, clearHistory, loadHistory, type CoachFailure, type CoachMessage } from '@/features/coach/coachApi';
+import { giveCoachConsent, hasCoachConsent } from '@/features/coach/coachConsent';
+import { showToast } from '@/components/ui/Toast';
+import { IS_DEMO } from '@/lib/demo';
 import { useIsPro } from '@/lib/entitlements';
 import { useTheme } from '@/theme/useTheme';
 
 const FREE_DAILY_MESSAGES = 3;
+const STARTERS = ['Help me stay consistent', 'I missed a few days', 'Suggest a tiny new habit', 'Review my week'];
+const INTRO = 'Hi, I’m your coach. I can help you plan small habits, get back on track, or make sense of your week. What would help most right now?';
 
-// UI PREVIEW: replies are canned and the daily counter is local state.
-// The real version calls a Supabase Edge Function that enforces the limit server-side.
+const FAILURE_TEXT: Record<CoachFailure, string> = {
+  unavailable: 'The coach isn’t available right now. You haven’t used a message. Please try again later.',
+  network: 'Couldn’t reach the coach. Check your connection and try again.',
+  auth: 'Please sign in again to use the coach.',
+  too_long: 'That message is too long. Please shorten it.',
+  empty: 'Type a message first.',
+  limit: 'That’s today’s free messages.',
+};
+
 export default function CoachScreen() {
   const { colors, spacing, radius } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const isPro = useIsPro();
+  const userId = useAuthStore((st) => st.session?.user.id);
   const scroll = useRef<React.ComponentRef<typeof ScrollView>>(null);
 
-  const [messages, setMessages] = useState<CoachMessage[]>([COACH_INTRO]);
+  const [consent, setConsent] = useState<boolean | null>(null);
+  const [messages, setMessages] = useState<CoachMessage[]>([]);
   const [draft, setDraft] = useState('');
-  const [used, setUsed] = useState(0);
+  const [used, setUsed] = useState<number | null>(null); // known only from the server's reply
+  const [limitHit, setLimitHit] = useState(false);
   const [thinking, setThinking] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
-  const remaining = Math.max(0, FREE_DAILY_MESSAGES - used);
-  const blocked = !isPro && remaining === 0;
+  useEffect(() => {
+    let alive = true;
+    void hasCoachConsent().then((c) => alive && setConsent(c));
+    return () => {
+      alive = false;
+    };
+  }, []);
 
-  function send(text: string) {
-    const clean = text.trim();
-    if (!clean || blocked || thinking) return;
-    setMessages((m) => [...m, { id: `u${m.length}`, role: 'user', text: clean }]);
-    setDraft('');
-    setUsed((n) => n + 1);
-    setThinking(true);
-    setTimeout(() => {
-      setMessages((m) => [...m, { id: `c${m.length}`, role: 'coach', text: COACH_CANNED_REPLY }]);
+  useEffect(() => {
+    if (!consent || IS_DEMO) return;
+    let alive = true;
+    void loadHistory().then((h) => alive && setMessages(h));
+    return () => {
+      alive = false;
+    };
+  }, [consent]);
+
+  const remaining = used === null ? null : Math.max(0, FREE_DAILY_MESSAGES - used);
+  const blocked = !isPro && (limitHit || remaining === 0);
+
+  const send = useCallback(
+    async (text: string) => {
+      const clean = text.trim();
+      if (!clean || blocked || thinking) return;
+      setNotice(null);
+      setMessages((m) => [...m, { id: `u${Date.now()}`, role: 'user', text: clean }]);
+      setDraft('');
+      setThinking(true);
+      const r = await askCoach(clean);
       setThinking(false);
-    }, 900);
+      if (r.ok) {
+        setUsed(r.used);
+        setMessages((m) => [...m, { id: `a${Date.now()}`, role: 'assistant', text: r.reply }]);
+        return;
+      }
+      // The server did not answer, so take our optimistic message back out and restore the draft.
+      setMessages((m) => m.slice(0, -1));
+      setDraft(clean);
+      if (r.failure === 'limit') {
+        setLimitHit(true);
+        setUsed(r.used ?? FREE_DAILY_MESSAGES);
+      } else setNotice(FAILURE_TEXT[r.failure]);
+    },
+    [blocked, thinking],
+  );
+
+  async function clear() {
+    if (!userId) return;
+    const ok = await clearHistory(userId);
+    if (ok) setMessages([]);
+    showToast(ok ? 'Conversation cleared' : 'Couldn’t clear the conversation', ok ? 'success' : 'error');
+  }
+
+  if (IS_DEMO) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top + spacing.md, paddingHorizontal: spacing.lg, gap: spacing.md }}>
+        <LargeHeader title="Coach" />
+        <Text secondary>The coach talks to a server, so it isn’t available in this offline preview. It works in the full app once it’s connected.</Text>
+      </View>
+    );
+  }
+
+  if (consent === null) return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
+
+  if (!consent) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top + spacing.md, paddingHorizontal: spacing.lg, gap: spacing.md }}>
+        <LargeHeader title="Coach" />
+        <View style={{ backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.sm }}>
+          <Text variant="title2">Before you chat</Text>
+          <Text secondary>
+            Your messages are sent to our server and then to Anthropic’s Claude, which writes the replies. Your habits, check-ins and journal are not sent.
+          </Text>
+          <Text secondary>
+            Your conversation is saved to your account so the coach can follow along. You can clear it any time from this screen.
+          </Text>
+          <Text secondary>The coach is AI-generated. It isn’t a doctor or therapist and can make mistakes.</Text>
+          <Button title="I understand, continue" onPress={() => void giveCoachConsent().then(() => setConsent(true))} />
+        </View>
+      </View>
+    );
   }
 
   return (
@@ -52,7 +136,7 @@ export default function CoachScreen() {
       <View style={{ paddingTop: insets.top + spacing.md, paddingHorizontal: spacing.lg, paddingBottom: spacing.sm, gap: spacing.xs }}>
         <LargeHeader title="Coach" />
         <Text variant="footnote" secondary>
-          {isPro ? 'Unlimited messages' : `${remaining} of ${FREE_DAILY_MESSAGES} free messages left today`}
+          {isPro ? 'Unlimited messages' : remaining === null ? `Free plan: ${FREE_DAILY_MESSAGES} messages a day` : `${remaining} of ${FREE_DAILY_MESSAGES} free messages left today`}
           {' · AI-generated, not professional advice'}
         </Text>
       </View>
@@ -63,6 +147,11 @@ export default function CoachScreen() {
         contentContainerStyle={{ padding: spacing.lg, gap: spacing.sm }}
         keyboardShouldPersistTaps="handled"
       >
+        {messages.length === 0 ? (
+          <View style={{ alignSelf: 'flex-start', maxWidth: '85%', backgroundColor: colors.surface, borderRadius: 20, borderBottomLeftRadius: 6, padding: spacing.md }}>
+            <Text>{INTRO}</Text>
+          </View>
+        ) : null}
         {messages.map((m) => (
           <View
             key={m.id}
@@ -87,12 +176,20 @@ export default function CoachScreen() {
           </View>
         ) : null}
 
-        {messages.length === 1 && !blocked ? (
+        {messages.length === 0 && !blocked ? (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm }}>
-            {COACH_STARTERS.map((s) => (
-              <Chip key={s} label={s} onPress={() => send(s)} />
+            {STARTERS.map((s) => (
+              <Chip key={s} label={s} onPress={() => void send(s)} />
             ))}
           </View>
+        ) : null}
+
+        {notice ? <Text accessibilityRole="alert" style={{ color: colors.dangerInk }}>{notice}</Text> : null}
+
+        {messages.length > 0 ? (
+          <Text variant="footnote" secondary accessibilityRole="button" onPress={() => void clear()} style={{ alignSelf: 'center', paddingVertical: spacing.sm }}>
+            Clear conversation
+          </Text>
         ) : null}
 
         {blocked ? (
@@ -128,7 +225,7 @@ export default function CoachScreen() {
           accessibilityRole="button"
           accessibilityLabel="Send message"
           disabled={blocked || thinking || draft.trim().length === 0}
-          onPress={() => send(draft)}
+          onPress={() => void send(draft)}
           style={{
             width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center',
             backgroundColor: colors.accent, opacity: blocked || thinking || draft.trim().length === 0 ? 0.4 : 1,
