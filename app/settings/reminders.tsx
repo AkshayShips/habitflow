@@ -1,63 +1,66 @@
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Linking, Platform, View } from 'react-native';
 
 import { Chip, Group, ListRow, SectionLabel } from '@/components/ui/Card';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
-import { useHabits } from '@/features/habits/hooks/useHabits';
+import { showToast } from '@/components/ui/Toast';
+import { formatTime, REMINDER_TIMES } from '@/features/reminders/reminderSettings';
+import { useReminder } from '@/features/reminders/useReminder';
 import { useTheme } from '@/theme/useTheme';
 import { tileColors } from '@/theme/tokens';
 
-const TIMES = ['7:00 AM', '8:00 AM', '12:30 PM', '6:00 PM', '9:00 PM'];
-
-// UI PREVIEW: nothing is scheduled yet. The real version uses expo-notifications local notifications.
 export default function RemindersScreen() {
-  const { spacing } = useTheme();
-  const habitsQ = useHabits();
-  const habits = (habitsQ.data ?? []).filter((h) => !h.archivedAt);
+  const { spacing, colors } = useTheme();
+  const { settings, loaded, update } = useReminder();
+  const [denied, setDenied] = useState(false);
+  const isWeb = Platform.OS === 'web';
 
-  const [enabled, setEnabled] = useState(true);
-  const [time, setTime] = useState('8:00 AM');
-  const [quiet, setQuiet] = useState(true);
-  const [off, setOff] = useState<string[]>([]);
+  async function change(next: typeof settings) {
+    const r = await update(next);
+    if (r.ok) return setDenied(false);
+    if (r.reason === 'permission-denied') setDenied(true);
+    else showToast(r.reason === 'unavailable' ? 'Reminders need the iPhone app.' : 'Couldn’t update the reminder. Try again.', 'error');
+  }
 
   return (
     <Screen>
       <Group>
-        <ListRow icon="notifications" iconColor={tileColors.orange} title="Daily reminder" toggle={{ value: enabled, onChange: setEnabled }} last />
+        <ListRow
+          icon="notifications"
+          iconColor={tileColors.orange}
+          title="Daily reminder"
+          toggle={{ value: settings.enabled, onChange: (v) => void change({ ...settings, enabled: v }) }}
+          last
+        />
       </Group>
 
-      {enabled ? (
+      {isWeb ? <Text secondary>Reminders are delivered by the iPhone app. This web preview can’t schedule them.</Text> : null}
+
+      {denied ? (
+        <View accessibilityRole="alert" style={{ gap: spacing.sm }}>
+          <Text style={{ color: colors.dangerInk }}>Notifications are turned off for HabitFlow.</Text>
+          <Text secondary onPress={() => void Linking.openSettings()} accessibilityRole="link">
+            Open Settings to allow them
+          </Text>
+        </View>
+      ) : null}
+
+      {loaded && settings.enabled ? (
         <>
           <SectionLabel>Time</SectionLabel>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
-            {TIMES.map((t) => (
-              <Chip key={t} label={t} selected={time === t} onPress={() => setTime(t)} />
+            {REMINDER_TIMES.map((t) => (
+              <Chip
+                key={`${t.hour}:${t.minute}`}
+                label={formatTime(t.hour, t.minute)}
+                selected={settings.hour === t.hour && settings.minute === t.minute}
+                onPress={() => void change({ ...settings, hour: t.hour, minute: t.minute })}
+              />
             ))}
           </View>
-
-          <SectionLabel>Quiet hours</SectionLabel>
-          <Group>
-            <ListRow icon="moon" iconColor={tileColors.purple} title="Pause 10 PM to 7 AM" toggle={{ value: quiet, onChange: setQuiet }} last />
-          </Group>
-
-          <SectionLabel>Include these habits</SectionLabel>
-          {habits.length === 0 ? (
-            <Text secondary>Create a habit to choose which ones appear in your reminder.</Text>
-          ) : (
-            <Group>
-              {habits.map((h, i) => (
-                <ListRow
-                  key={h.id}
-                  title={h.name}
-                  toggle={{ value: !off.includes(h.id), onChange: (v) => setOff((o) => (v ? o.filter((x) => x !== h.id) : [...o, h.id])) }}
-                  last={i === habits.length - 1}
-                />
-              ))}
-            </Group>
-          )}
           <Text variant="footnote" secondary>
-            Reminders are gentle and never mention streaks you might lose.
+            One gentle reminder a day, at the time you choose. It never mentions streaks you might lose.
           </Text>
         </>
       ) : null}
