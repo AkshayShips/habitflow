@@ -54,6 +54,8 @@ export default function RootLayout() {
             <Stack.Screen name="habit/new" options={{ presentation: 'modal', headerShown: true, title: 'New habit' }} />
             <Stack.Screen name="habit/[id]" options={{ presentation: 'modal', headerShown: true, title: 'Edit habit' }} />
             <Stack.Screen name="habit-detail" options={{ headerShown: true, title: 'Habit', headerBackTitle: 'Back' }} />
+            <Stack.Screen name="habit-effort" options={{ headerShown: true, title: 'Effort levels', headerBackTitle: 'Back' }} />
+            <Stack.Screen name="habit-experiment" options={{ headerShown: true, title: 'Experiment', headerBackTitle: 'Back' }} />
             <Stack.Screen name="journal" options={{ headerShown: true, title: 'Journal', headerBackTitle: 'Back' }} />
             <Stack.Screen name="achievements" options={{ headerShown: true, title: 'Achievements', headerBackTitle: 'Back' }} />
             <Stack.Screen name="paywall" options={{ presentation: 'modal', headerShown: true, title: 'Pro' }} />

@@ -2,7 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 
 import { MIGRATIONS } from '@/lib/localMigrations';
 import {
-  clearEffortLevel, decideExperiment, listEffortLevels, listExperiments, setEffortLevel, startExperiment,
+  clearEffortLevel, decideExperiment, keepExperiment, listEffortLevels, listExperiments, setEffortLevel, startExperiment,
 } from '@/features/momentum/api/momentumRepository';
 import { adapt, Device, FakeServer, H1, t } from './testing/harness';
 
@@ -170,5 +170,30 @@ describe('Adaptive Momentum sync', () => {
     });
     const r = await b.sync();
     expect(r.skipped).toBe(1);
+  });
+});
+
+describe('keepExperiment', () => {
+  it('records the decision and updates the habit target together; logs are untouched; syncs to other devices', async () => {
+    const { a, b, dbA } = setup();
+    a.addHabit(H1, 'Read', t(1));
+    a.setLog('55555555-5555-4555-8555-555555555555', H1, '2026-11-17', 'done', t(2));
+    const e = await startExperiment(dbA, { habitId: H1, startDate: '2026-11-18', durationDays: 7, baselineTargetValue: 20, trialTargetValue: 10 });
+    await keepExperiment(dbA, e.id);
+    expect(a.raw.prepare('SELECT target_value, dirty FROM habits WHERE id = ?').get(H1)).toEqual({ target_value: 10, dirty: 1 });
+    expect(a.logs(H1)).toHaveLength(1);
+    await a.sync();
+    await b.sync();
+    expect(b.raw.prepare('SELECT target_value FROM habits WHERE id = ?').get(H1)).toEqual({ target_value: 10 });
+    expect(b.raw.prepare('SELECT status FROM momentum_experiments').get()).toEqual({ status: 'kept' });
+  });
+
+  it('does nothing for an experiment that is already decided', async () => {
+    const { a, dbA } = setup();
+    a.addHabit(H1, 'Read', t(1));
+    const e = await startExperiment(dbA, { habitId: H1, startDate: '2026-11-18', durationDays: 7, baselineTargetValue: 20, trialTargetValue: 10 });
+    await decideExperiment(dbA, e.id, 'discarded');
+    await keepExperiment(dbA, e.id);
+    expect(a.raw.prepare('SELECT target_value FROM habits WHERE id = ?').get(H1)).toEqual({ target_value: 1 });
   });
 });

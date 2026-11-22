@@ -102,3 +102,25 @@ export async function decideExperiment(db: Db, id: string, decision: 'kept' | 'd
     [decision, at, at, id],
   );
 }
+
+/**
+ * The user chose to keep the trial target: records the decision AND updates the habit's target in one transaction,
+ * so the two can never disagree. Past logs are not touched.
+ */
+export async function keepExperiment(db: Db, experimentId: string): Promise<void> {
+  await db.withTransactionAsync(async () => {
+    const exp = await db.getFirstAsync<{ habit_id: string; trial_target_value: number }>(
+      "SELECT habit_id, trial_target_value FROM momentum_experiments WHERE id = ? AND status = 'running' AND deleted_at IS NULL",
+      [experimentId],
+    );
+    if (!exp) return;
+    const at = now();
+    await db.runAsync(
+      "UPDATE momentum_experiments SET status = 'kept', decided_at = ?, updated_at = ?, dirty = 1 WHERE id = ?",
+      [at, at, experimentId],
+    );
+    await db.runAsync('UPDATE habits SET target_value = ?, updated_at = ?, dirty = 1 WHERE id = ? AND deleted_at IS NULL', [
+      exp.trial_target_value, at, exp.habit_id,
+    ]);
+  });
+}

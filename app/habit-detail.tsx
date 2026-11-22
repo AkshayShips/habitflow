@@ -3,12 +3,14 @@ import { useMemo } from 'react';
 import { View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
+import { Card, Group, ListRow } from '@/components/ui/Card';
 import { HabitIcon } from '@/components/ui/HabitIcon';
 import { Screen } from '@/components/ui/Screen';
 import { ErrorState, ListSkeleton } from '@/components/ui/StateViews';
 import { Text } from '@/components/ui/Text';
 import { useHabit, useLogs, useStreaks, useTodayStr } from '@/features/habits/hooks/useHabits';
+import { useEffortLevels, useExperiments } from '@/features/momentum/hooks/useMomentum';
+import { describeTarget } from '@/features/momentum/logic/suggestions';
 import { addDays, weekStart } from '@/features/habits/logic/dates';
 import { describeCadence, isScheduledOn } from '@/features/habits/logic/schedule';
 import { useTheme } from '@/theme/useTheme';
@@ -26,6 +28,8 @@ export default function HabitDetailScreen() {
   const habitQ = useHabit(id);
   const logsQ = useLogs();
   const habit = habitQ.data;
+  const levelsQ = useEffortLevels();
+  const expQ = useExperiments();
   const streaks = useStreaks(habit ? [habit] : undefined, logsQ.data, today);
 
   const done = useMemo(
@@ -74,6 +78,30 @@ export default function HabitDetailScreen() {
           </View>
         ))}
       </View>
+
+      <Group>
+        <ListRow
+          title="Effort levels"
+          icon="options-outline"
+          subtitle="Minimum, standard and extended targets"
+          value={(() => {
+            const mine = (levelsQ.data ?? []).filter((l) => l.habitId === habit.id);
+            const lo = mine.find((l) => l.level === 'minimum');
+            const hi = mine.find((l) => l.level === 'extended');
+            if (!lo && !hi) return 'Not set';
+            return [lo && describeTarget(lo.targetValue, habit.unit), describeTarget(habit.targetValue, habit.unit), hi && describeTarget(hi.targetValue, habit.unit)].filter(Boolean).join(' · ');
+          })()}
+          onPress={() => router.push({ pathname: '/habit-effort', params: { id: habit.id } })}
+        />
+        <ListRow
+          title="Try a different target"
+          icon="flask-outline"
+          subtitle="Short experiment, your choice at the end"
+          value={(expQ.data ?? []).some((e) => e.habitId === habit.id && e.status === 'running') ? 'Running' : undefined}
+          onPress={() => router.push({ pathname: '/habit-experiment', params: { id: habit.id } })}
+          last
+        />
+      </Group>
 
       <Card>
         <Text variant="headline">Last {WEEKS} weeks</Text>
