@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { RefreshControl, ScrollView, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,6 +15,8 @@ import { HabitRow } from '@/features/habits/components/HabitRow';
 import { useHabits, useLogs, useStreaks, useToggleDone, useTodayStr } from '@/features/habits/hooks/useHabits';
 import { addDays, weekStart } from '@/features/habits/logic/dates';
 import { describeCadence, isScheduledOn } from '@/features/habits/logic/schedule';
+import { isOnboardingDone } from '@/features/onboarding/useOnboarding';
+import { IS_DEMO } from '@/lib/demo';
 import { useTheme } from '@/theme/useTheme';
 
 const greeting = () => {
@@ -37,6 +39,17 @@ export default function TodayScreen() {
   const logsQ = useLogs();
   const toggle = useToggleDone();
   const streaks = useStreaks(habitsQ.data, logsQ.data, today);
+
+  // First run only: a brand-new account with no habits sees the welcome flow once.
+  const loadedEmpty = habitsQ.isSuccess && habitsQ.data.length === 0;
+  useEffect(() => {
+    if (IS_DEMO || !loadedEmpty) return;
+    let alive = true;
+    void isOnboardingDone().then((done) => alive && !done && router.push('/onboarding'));
+    return () => {
+      alive = false;
+    };
+  }, [loadedEmpty, router]);
 
   const rows = useMemo(() => {
     const habits = (habitsQ.data ?? []).filter((h) => h.archivedAt === null);
