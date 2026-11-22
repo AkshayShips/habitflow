@@ -1,29 +1,7 @@
 /**
- * Placeholder data for screens whose backend is not built yet (Coach, Journal, XP).
+ * Placeholder data for screens whose backend is not built yet (Coach, Journal).
  * Replace each export with a real repository/hook when its phase lands.
  */
-export const MOCK_XP = { level: 4, title: 'Steady', xp: 640, nextLevelXp: 800 };
-
-export interface Achievement {
-  id: string;
-  title: string;
-  description: string;
-  icon: string;
-  unlocked: boolean;
-  progress?: string;
-}
-
-export const MOCK_ACHIEVEMENTS: Achievement[] = [
-  { id: 'first_check', title: 'First step', description: 'Complete your first check-in.', icon: 'footsteps', unlocked: true },
-  { id: 'streak_3', title: 'Three in a row', description: 'Reach a 3-day streak.', icon: 'flame', unlocked: true },
-  { id: 'streak_7', title: 'One full week', description: 'Reach a 7-day streak.', icon: 'calendar', unlocked: true },
-  { id: 'streak_30', title: 'Thirty days', description: 'Reach a 30-day streak.', icon: 'ribbon', unlocked: false, progress: '12 / 30 days' },
-  { id: 'perfect_week', title: 'Perfect week', description: 'Finish every habit for 7 days.', icon: 'star', unlocked: false, progress: '4 / 7 days' },
-  { id: 'five_habits', title: 'Building a routine', description: 'Keep 5 habits active.', icon: 'layers', unlocked: false, progress: '3 / 5 habits' },
-  { id: 'journal_5', title: 'Reflective', description: 'Write 5 journal entries.', icon: 'book', unlocked: false, progress: '2 / 5 entries' },
-  { id: 'comeback', title: 'Welcome back', description: 'Return after a few days away. No guilt.', icon: 'sparkles', unlocked: true },
-];
-
 export interface CoachMessage { id: string; role: 'user' | 'coach'; text: string }
 
 export const COACH_STARTERS = [
