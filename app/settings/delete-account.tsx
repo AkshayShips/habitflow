@@ -5,15 +5,27 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
+import { deleteAccount } from '@/features/account/deleteAccount';
+import { useAuthStore } from '@/features/auth/store/authStore';
 import { useTheme } from '@/theme/useTheme';
 
-// UI PREVIEW: the button does nothing yet. The real version calls an Edge Function that deletes
-// the auth user (all rows cascade), then wipes the local database and signs out.
 export default function DeleteAccountScreen() {
   const { colors, spacing, radius } = useTheme();
+  const userId = useAuthStore((s) => s.session?.user.id);
   const [text, setText] = useState('');
-  const [tried, setTried] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const ok = text.trim().toUpperCase() === 'DELETE';
+
+  async function run() {
+    if (!userId) return;
+    setBusy(true);
+    setError(null);
+    const r = await deleteAccount(userId);
+    setBusy(false);
+    if (!r.ok) setError(r.message);
+    // On success the session is gone and the app routes back to sign-in on its own.
+  }
 
   return (
     <Screen
@@ -21,8 +33,9 @@ export default function DeleteAccountScreen() {
         <Button
           title="Delete my account"
           disabled={!ok}
+          loading={busy}
           variant="danger"
-          onPress={() => setTried(true)}
+          onPress={() => void run()}
         />
       }
     >
@@ -46,7 +59,7 @@ export default function DeleteAccountScreen() {
           color: colors.text, paddingHorizontal: spacing.md, fontSize: 17,
         }}
       />
-      {tried ? <Text accessibilityLiveRegion="polite" secondary>Preview only: nothing was deleted.</Text> : null}
+      {error ? <Text accessibilityRole="alert" style={{ color: colors.dangerInk }}>{error}</Text> : null}
     </Screen>
   );
 }

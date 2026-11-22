@@ -1,6 +1,5 @@
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
 
 import { Group, ListRow, SectionLabel } from '@/components/ui/Card';
 import { Screen } from '@/components/ui/Screen';
@@ -8,32 +7,15 @@ import { Text } from '@/components/ui/Text';
 import { useIsGuest } from '@/features/auth/store/authStore';
 import { tileColors } from '@/theme/tokens';
 
-// UI PREVIEW: toggles are local state. Persisting preferences comes with the settings store.
 export default function SettingsScreen() {
   const router = useRouter();
   const isGuest = useIsGuest();
-  const [haptics, setHaptics] = useState(true);
-  const [mondayStart, setMondayStart] = useState(true);
-  const [analytics, setAnalytics] = useState(true);
 
   return (
     <Screen>
       <SectionLabel>Preferences</SectionLabel>
       <Group>
-        <ListRow icon="notifications" iconColor={tileColors.orange} title="Reminders" onPress={() => router.push('/settings/reminders')} />
-        <ListRow icon="phone-portrait" iconColor={tileColors.gray} title="Haptic feedback" toggle={{ value: haptics, onChange: setHaptics }} />
-        <ListRow icon="calendar" iconColor={tileColors.blue} title="Week starts on Monday" toggle={{ value: mondayStart, onChange: setMondayStart }} last />
-      </Group>
-
-      <SectionLabel>Privacy</SectionLabel>
-      <Group>
-        <ListRow
-          icon="analytics" iconColor={tileColors.purple}
-          title="Share anonymous usage data"
-          subtitle="Helps improve the app. No habit names or journal text."
-          toggle={{ value: analytics, onChange: setAnalytics }}
-          last
-        />
+        <ListRow icon="notifications" iconColor={tileColors.orange} title="Reminders" onPress={() => router.push('/settings/reminders')} last />
       </Group>
 
       <SectionLabel>Your data</SectionLabel>
@@ -45,9 +27,6 @@ export default function SettingsScreen() {
 
       <SectionLabel>About</SectionLabel>
       <Group>
-        <ListRow icon="help-circle" iconColor={tileColors.teal} title="Help and support" onPress={() => undefined} />
-        <ListRow icon="document-text" iconColor={tileColors.gray} title="Privacy Policy" onPress={() => undefined} />
-        <ListRow icon="reader" iconColor={tileColors.gray} title="Terms of Use" onPress={() => undefined} />
         <ListRow icon="information-circle" iconColor={tileColors.gray} title="Version" value={Constants.expoConfig?.version ?? '1.0.0'} last />
       </Group>
     </Screen>
