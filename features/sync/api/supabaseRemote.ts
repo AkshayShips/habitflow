@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import { remoteEffortLevelSchema, remoteExperimentSchema, remoteHabitSchema, remoteLogSchema } from '../schemas/remote';
+import { remoteEffortLevelSchema, remoteExperimentSchema, remoteHabitSchema, remoteJournalSchema, remoteLogSchema } from '../schemas/remote';
 import {
   SyncRemoteError,
   type Cursor,
@@ -8,6 +8,7 @@ import {
   type RemoteEffortLevel,
   type RemoteExperiment,
   type RemoteHabit,
+  type RemoteJournalEntry,
   type RemoteLog,
 } from '../types';
 
@@ -30,7 +31,7 @@ function toError(f: Failure): SyncRemoteError {
 }
 
 async function pull<T>(
-  table: 'habits' | 'habit_logs' | 'habit_effort_levels' | 'momentum_experiments',
+  table: 'habits' | 'habit_logs' | 'habit_effort_levels' | 'momentum_experiments' | 'journal_entries',
   cursor: Cursor | null,
   limit: number,
   parse: (row: unknown) => T | null,
@@ -104,5 +105,17 @@ export const supabaseRemote: RemoteApi = {
     pull<RemoteExperiment>('momentum_experiments', cursor, limit, (r) => {
       const p = remoteExperimentSchema.safeParse(r);
       return p.success ? (p.data as RemoteExperiment) : null;
+    }),
+
+  async upsertJournal(rows: RemoteJournalEntry[]) {
+    // Identity is (user_id, entry_date), like logs.
+    const { error, status } = await supabase.from('journal_entries').upsert(rows, { onConflict: 'user_id,entry_date' });
+    if (error) throw toError({ message: error.message, code: error.code, status });
+  },
+
+  pullJournal: (cursor, limit) =>
+    pull<RemoteJournalEntry>('journal_entries', cursor, limit, (r) => {
+      const p = remoteJournalSchema.safeParse(r);
+      return p.success ? (p.data as RemoteJournalEntry) : null;
     }),
 };

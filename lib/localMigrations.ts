@@ -84,4 +84,17 @@ export const MIGRATIONS: string[] = [
   CREATE UNIQUE INDEX momentum_experiments_one_running
     ON momentum_experiments (habit_id) WHERE status = 'running' AND deleted_at IS NULL;
   `,
+  // v4: journal (one entry per local calendar date), synced
+  `
+  CREATE TABLE journal_entries (
+    id         TEXT PRIMARY KEY NOT NULL,
+    entry_date TEXT NOT NULL UNIQUE,
+    body       TEXT NOT NULL DEFAULT '',
+    mood       INTEGER CHECK (mood BETWEEN 1 AND 5),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    deleted_at TEXT,
+    dirty      INTEGER NOT NULL DEFAULT 1
+  );
+  `,
 ];

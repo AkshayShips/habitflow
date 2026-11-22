@@ -15,6 +15,7 @@ import {
   type RemoteEffortLevel,
   type RemoteExperiment,
   type RemoteHabit,
+  type RemoteJournalEntry,
   type RemoteLog,
 } from '../types';
 
@@ -29,6 +30,7 @@ export class FakeServer implements RemoteApi {
   logs = new Map<string, RemoteLog>(); // key: habit_id|log_date
   effort = new Map<string, RemoteEffortLevel>(); // key: habit_id|level
   experiments = new Map<string, RemoteExperiment>();
+  journal = new Map<string, RemoteJournalEntry>(); // key: entry_date (single test user)
   offline = false;
   rejectHabit: (h: RemoteHabit) => boolean = () => false;
   /** Called after rows are received but before the response returns (lets a test race a local edit). */
@@ -109,6 +111,21 @@ export class FakeServer implements RemoteApi {
   }
   async pullExperiments(cursor: Cursor | null, limit: number) {
     return this.page([...this.experiments.values()], cursor, limit);
+  }
+
+  async upsertJournal(rows: RemoteJournalEntry[]) {
+    this.guard();
+    for (const r of rows) {
+      if (r.body.length > 20000) throw new SyncRemoteError('body too long', false);
+    }
+    for (const r of rows) {
+      const ex = this.journal.get(r.entry_date);
+      if (ex && ms(r.updated_at) < ms(ex.updated_at)) continue;
+      this.journal.set(r.entry_date, ex && r.updated_at === ex.updated_at ? { ...r, updated_at: this.serverNow() } : { ...r });
+    }
+  }
+  async pullJournal(cursor: Cursor | null, limit: number) {
+    return this.page([...this.journal.values()], cursor, limit);
   }
 
   private page<T extends { updated_at: string; id: string }>(all: T[], cursor: Cursor | null, limit: number): PullPage<T> {
@@ -214,7 +231,8 @@ export class Device {
   dirtyMomentum() {
     const a = this.raw.prepare('SELECT COUNT(*) AS n FROM habit_effort_levels WHERE dirty = 1').get() as { n: number };
     const b = this.raw.prepare('SELECT COUNT(*) AS n FROM momentum_experiments WHERE dirty = 1').get() as { n: number };
-    return a.n + b.n;
+    const c = this.raw.prepare('SELECT COUNT(*) AS n FROM journal_entries WHERE dirty = 1').get() as { n: number };
+    return a.n + b.n + c.n;
   }
 
   dirtyCount() {

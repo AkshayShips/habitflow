@@ -5,9 +5,13 @@ import { Pressable, TextInput, View } from 'react-native';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Screen } from '@/components/ui/Screen';
+import { ErrorState, ListSkeleton } from '@/components/ui/StateViews';
 import { Text } from '@/components/ui/Text';
-import { MOCK_JOURNAL, MOODS, type JournalEntry } from '@/features/preview/mock';
-import { todayStr } from '@/features/habits/logic/dates';
+import { showToast } from '@/components/ui/Toast';
+import { MAX_BODY } from '@/features/journal/api/journalRepository';
+import { useDeleteJournalEntry, useJournalEntries, useSaveJournalEntry } from '@/features/journal/hooks/useJournal';
+import { MOODS } from '@/features/journal/moods';
+import { useTodayStr } from '@/features/habits/hooks/useHabits';
 import { useTheme } from '@/theme/useTheme';
 
 const pretty = (s: string) => {
@@ -15,26 +19,41 @@ const pretty = (s: string) => {
   return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 };
 
-// UI PREVIEW: entries live in component state only.
 export default function JournalScreen() {
   const { colors, spacing, radius } = useTheme();
-  const [entries, setEntries] = useState<JournalEntry[]>(MOCK_JOURNAL);
-  const [mood, setMood] = useState<JournalEntry['mood'] | null>(null);
-  const [text, setText] = useState('');
+  const today = useTodayStr();
+  const q = useJournalEntries();
+  const save = useSaveJournalEntry();
+  const del = useDeleteJournalEntry();
 
-  const canSave = mood !== null && text.trim().length > 0;
+  // Which day the composer is editing (default: today). Until the user types, the saved entry is shown.
+  const [date, setDate] = useState<string | null>(null);
+  const [draftText, setText] = useState<string | null>(null);
+  const [draftMood, setMood] = useState<number | null | undefined>(undefined);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
-  function save() {
-    if (!canSave || mood === null) return;
-    setEntries((e) => [{ id: `n${e.length}`, date: todayStr(), mood, text: text.trim() }, ...e]);
-    setText('');
-    setMood(null);
-  }
+  if (q.isPending) return <Screen><ListSkeleton rows={3} /></Screen>;
+  if (q.error) return <Screen><ErrorState message="We couldn’t load your journal." onRetry={() => void q.refetch()} /></Screen>;
+
+  const editing = date ?? today;
+  const entries = q.data ?? [];
+  const existing = entries.find((e) => e.date === editing);
+  const text = draftText ?? existing?.body ?? '';
+  const mood = draftMood === undefined ? (existing?.mood ?? null) : draftMood;
+  const dirty = draftText !== null || draftMood !== undefined;
+  const canSave = dirty && (text.trim().length > 0 || mood !== null || existing !== undefined);
+
+  const reset = (d: string | null) => {
+    setDate(d);
+    setText(null);
+    setMood(undefined);
+    setConfirmDelete(false);
+  };
 
   return (
     <Screen>
       <Card>
-        <Text variant="title2">How was today?</Text>
+        <Text variant="title2">{editing === today ? 'How was today?' : `Entry for ${pretty(editing)}`}</Text>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
           {MOODS.map((m) => {
             const on = mood === m.value;
@@ -44,7 +63,7 @@ export default function JournalScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={`Mood: ${m.label}`}
                 accessibilityState={{ selected: on }}
-                onPress={() => setMood(m.value)}
+                onPress={() => setMood(on ? null : m.value)}
                 style={{
                   width: 58, minHeight: 64, alignItems: 'center', justifyContent: 'center', gap: spacing.xs,
                   borderRadius: radius.md, backgroundColor: on ? colors.accent : colors.surfaceAlt,
@@ -60,7 +79,7 @@ export default function JournalScreen() {
           value={text}
           onChangeText={setText}
           multiline
-          maxLength={2000}
+          maxLength={MAX_BODY}
           placeholder="A line or two is plenty."
           placeholderTextColor={colors.textSecondary}
           accessibilityLabel="Journal entry"
@@ -69,21 +88,65 @@ export default function JournalScreen() {
             color: colors.text, padding: spacing.md, fontSize: 17, textAlignVertical: 'top',
           }}
         />
-        <Button title="Save entry" disabled={!canSave} onPress={save} />
+        <Button
+          title={existing ? 'Save changes' : 'Save entry'}
+          disabled={!canSave}
+          loading={save.isPending}
+          onPress={() =>
+            save.mutate(
+              { date: editing, body: text, mood },
+              {
+                onSuccess: () => {
+                  reset(null);
+                  showToast('Saved', 'success');
+                },
+                onError: () => showToast('Couldn’t save. Your text is still here, so try again.', 'error'),
+              },
+            )
+          }
+        />
+        {existing ? (
+          <Button
+            title={confirmDelete ? 'Tap again to delete this entry' : 'Delete entry'}
+            variant={confirmDelete ? 'danger' : 'ghost'}
+            loading={del.isPending}
+            onPress={() => {
+              if (!confirmDelete) return setConfirmDelete(true);
+              del.mutate(editing, {
+                onSuccess: () => {
+                  reset(null);
+                  showToast('Entry deleted', 'success');
+                },
+                onError: () => showToast('Couldn’t delete. Please try again.', 'error'),
+              });
+            }}
+          />
+        ) : null}
+        {editing !== today ? <Button title="Back to today" variant="ghost" onPress={() => reset(null)} /> : null}
       </Card>
 
       <Text variant="headline">Past entries</Text>
+      {entries.length === 0 ? (
+        <Text secondary>Nothing here yet. Your entries are private to you and appear here once saved.</Text>
+      ) : null}
       {entries.map((e) => {
-        const mood = MOODS.find((m) => m.value === e.mood);
+        const m = MOODS.find((x) => x.value === e.mood);
         return (
-          <Card key={e.id} style={{ gap: spacing.xs }}>
-            <View accessible accessibilityLabel={`${pretty(e.date)}, mood ${mood?.label}`} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-              <Ionicons name={mood?.icon ?? 'sunny-outline'} size={20} color={colors.accent} />
-              <Text variant="headline">{pretty(e.date)}</Text>
-              <Text secondary>{mood?.label}</Text>
-            </View>
-            <Text>{e.text}</Text>
-          </Card>
+          <Pressable
+            key={e.date}
+            accessibilityRole="button"
+            accessibilityLabel={`${pretty(e.date)}${m ? `, mood ${m.label}` : ''}. ${e.body || 'No text.'} Tap to edit.`}
+            onPress={() => reset(e.date)}
+          >
+            <Card style={{ gap: spacing.xs }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                {m ? <Ionicons name={m.icon} size={20} color={colors.accent} /> : null}
+                <Text variant="headline">{pretty(e.date)}</Text>
+                {m ? <Text secondary>{m.label}</Text> : null}
+              </View>
+              {e.body ? <Text numberOfLines={4}>{e.body}</Text> : null}
+            </Card>
+          </Pressable>
         );
       })}
     </Screen>

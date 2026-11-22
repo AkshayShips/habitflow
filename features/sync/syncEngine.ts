@@ -21,7 +21,7 @@ interface Deps {
  * One full sync pass: push local changes, then pull remote changes.
  *
  * Order matters:
- *   push habits -> push logs -> push effort levels -> push experiments   (all reference habits)
+ *   push habits -> push logs -> push effort levels -> push experiments -> push journal   (the first four reference habits)
  *   pull habits -> pull logs -> pull effort levels -> pull experiments   (same reason, locally: foreign key)
  * The Adaptive Momentum tables run only when both the local store and the remote provide them.
  *
@@ -62,6 +62,16 @@ export async function runSync({ local, remote }: Deps): Promise<SyncResult> {
     });
   }
 
+  if (local.getDirtyJournal && remote.upsertJournal) {
+    const read = local.getDirtyJournal.bind(local);
+    const send = remote.upsertJournal.bind(remote);
+    await pushTable('journal_entries', result, {
+      read: (exclude) => read(PUSH_BATCH, exclude),
+      send: (rows) => send(rows),
+      mark: (rows) => local.markPushed('journal_entries', rows),
+    });
+  }
+
   await pullTable('habits', result, local, (cursor) => remote.pullHabits(cursor, PULL_PAGE), (rows) =>
     local.applyRemoteHabits(rows),
   );
@@ -78,6 +88,12 @@ export async function runSync({ local, remote }: Deps): Promise<SyncResult> {
     const apply = local.applyRemoteExperiments.bind(local);
     const pull = remote.pullExperiments.bind(remote);
     await pullTable('momentum_experiments', result, local, (cursor) => pull(cursor, PULL_PAGE), apply);
+  }
+
+  if (local.applyRemoteJournal && remote.pullJournal) {
+    const apply = local.applyRemoteJournal.bind(local);
+    const pull = remote.pullJournal.bind(remote);
+    await pullTable('journal_entries', result, local, (cursor) => pull(cursor, PULL_PAGE), apply);
   }
 
   return result;

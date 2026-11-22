@@ -7,6 +7,7 @@ import type {
   RemoteEffortLevel,
   RemoteExperiment,
   RemoteHabit,
+  RemoteJournalEntry,
   RemoteLog,
   SyncTable,
 } from '../types';
@@ -85,6 +86,16 @@ export class SqliteLocalStore implements LocalStore {
       `SELECT id, habit_id, start_date, duration_days, baseline_target_value, trial_target_value, status, decided_at,
               created_at, updated_at, deleted_at
          FROM momentum_experiments WHERE dirty = 1${clause} ORDER BY updated_at, id LIMIT ?`,
+      [...params, limit],
+    );
+    return rows.map((r) => ({ ...r, user_id: this.userId }));
+  }
+
+  async getDirtyJournal(limit: number, exclude: string[]): Promise<RemoteJournalEntry[]> {
+    const { clause, params } = this.notIn(exclude);
+    const rows = await this.db.getAllAsync<Omit<RemoteJournalEntry, 'user_id'>>(
+      `SELECT id, entry_date, body, mood, created_at, updated_at, deleted_at
+         FROM journal_entries WHERE dirty = 1${clause} ORDER BY updated_at, id LIMIT ?`,
       [...params, limit],
     );
     return rows.map((r) => ({ ...r, user_id: this.userId }));
@@ -267,6 +278,48 @@ export class SqliteLocalStore implements LocalStore {
           count.applied += 1;
         } catch {
           count.skipped += 1; // e.g. a second "running" experiment for the same habit
+        }
+      }
+    });
+    return count;
+  }
+
+  /** Identity of a journal entry is its date; two devices may have created it with different ids. */
+  async applyRemoteJournal(rows: RemoteJournalEntry[]): Promise<ApplyCount> {
+    const count: ApplyCount = { applied: 0, skipped: 0 };
+    await this.db.withTransactionAsync(async () => {
+      for (const r of rows) {
+        let ex = await this.db.getFirstAsync<{ id: string; updated_at: string; dirty: number }>(
+          'SELECT id, updated_at, dirty FROM journal_entries WHERE entry_date = ?',
+          [r.entry_date],
+        );
+        if (!ex) {
+          ex = await this.db.getFirstAsync<{ id: string; updated_at: string; dirty: number }>(
+            'SELECT id, updated_at, dirty FROM journal_entries WHERE id = ?',
+            [r.id],
+          );
+        }
+        if (ex && ex.dirty === 1 && newer(ex.updated_at, r.updated_at)) {
+          count.skipped += 1;
+          continue;
+        }
+        try {
+          if (ex) {
+            await this.db.runAsync(
+              `UPDATE journal_entries SET id = ?, entry_date = ?, body = ?, mood = ?, updated_at = ?, deleted_at = ?, dirty = 0
+                WHERE id = ?`,
+              [r.id, r.entry_date, r.body, r.mood, r.updated_at, r.deleted_at, ex.id],
+            );
+          } else {
+            await this.db.runAsync(
+              `INSERT INTO journal_entries (id, entry_date, body, mood, created_at, updated_at, deleted_at, dirty)
+               VALUES (?, ?, ?, ?, ?, ?, ?, 0)`,
+              [r.id, r.entry_date, r.body, r.mood, r.created_at, r.updated_at, r.deleted_at],
+            );
+          }
+          count.applied += 1;
+        } catch {
+          count.skipped += 1;
         }
       }
     });

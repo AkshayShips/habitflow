@@ -63,3 +63,14 @@ export const remoteExperimentSchema = z.object({
   updated_at: ts,
   deleted_at: nullableTs,
 });
+
+export const remoteJournalSchema = z.object({
+  id: z.uuid(),
+  user_id: z.uuid(),
+  entry_date: z.string().length(10),
+  body: z.string().max(20000),
+  mood: z.number().int().min(1).max(5).nullable(),
+  created_at: ts,
+  updated_at: ts,
+  deleted_at: nullableTs,
+});

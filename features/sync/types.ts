@@ -2,7 +2,7 @@
  * Sync model: SQLite is the source of truth; Supabase is the replica that lets devices converge.
  * Conflict rule: last-write-wins on updated_at (the server also enforces this in lww_guard()).
  */
-export type SyncTable = 'habits' | 'habit_logs' | 'habit_effort_levels' | 'momentum_experiments';
+export type SyncTable = 'habits' | 'habit_logs' | 'habit_effort_levels' | 'momentum_experiments' | 'journal_entries';
 
 export interface RemoteHabit {
   id: string;
@@ -68,6 +68,17 @@ export interface RemoteExperiment {
   deleted_at: string | null;
 }
 
+export interface RemoteJournalEntry {
+  id: string;
+  user_id: string;
+  entry_date: string;
+  body: string;
+  mood: number | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
 /** Keyset cursor over (updated_at, id): stable even when many rows share a timestamp. */
 export interface Cursor {
   ts: string;
@@ -100,6 +111,9 @@ export interface RemoteApi {
   pullEffortLevels?(cursor: Cursor | null, limit: number): Promise<PullPage<RemoteEffortLevel>>;
   upsertExperiments?(rows: RemoteExperiment[]): Promise<void>;
   pullExperiments?(cursor: Cursor | null, limit: number): Promise<PullPage<RemoteExperiment>>;
+  /** Journal (one entry per user and date). Optional for the same reason. */
+  upsertJournal?(rows: RemoteJournalEntry[]): Promise<void>;
+  pullJournal?(cursor: Cursor | null, limit: number): Promise<PullPage<RemoteJournalEntry>>;
 }
 
 export interface LocalStore {
@@ -115,6 +129,8 @@ export interface LocalStore {
   getDirtyExperiments?(limit: number, exclude: string[]): Promise<RemoteExperiment[]>;
   applyRemoteEffortLevels?(rows: RemoteEffortLevel[]): Promise<ApplyCount>;
   applyRemoteExperiments?(rows: RemoteExperiment[]): Promise<ApplyCount>;
+  getDirtyJournal?(limit: number, exclude: string[]): Promise<RemoteJournalEntry[]>;
+  applyRemoteJournal?(rows: RemoteJournalEntry[]): Promise<ApplyCount>;
   getCursor(table: SyncTable): Promise<Cursor | null>;
   setCursor(table: SyncTable, cursor: Cursor): Promise<void>;
 }
