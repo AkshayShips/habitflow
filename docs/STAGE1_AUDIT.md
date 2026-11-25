@@ -1,5 +1,7 @@
 # HabitFlow – Stage 1 Audit (no code changed in this stage)
 
+> Historical snapshot from before Stages 2-6. For current status see [STATUS.md](./STATUS.md). Sections 3, 6 and 9 below are out of date.
+
 Status labels used everywhere: **IT** Implemented and tested · **INT** Implemented but not fully tested · **UI** UI-only · **PLAN** Planned · **BLK** Blocked by external configuration.
 
 Honesty note: all visual checks so far were done in a desktop Chromium rendering of the web build. No iOS simulator or device has been used. Sync has never run from the app against the live Supabase project.
