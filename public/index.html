@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <!-- viewport-fit=cover lets the app draw under the notch; the app adds safe-area padding itself. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>HabitFlow</title>
+    <meta name="description" content="A calm habit tracker that builds routines at your own pace." />
+    <meta name="theme-color" content="#F8F9FC" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0E1013" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="light dark" />
+    <!-- iOS "Add to Home Screen": opens full-screen like an app. -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="HabitFlow" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="format-detection" content="telephone=no" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <style id="expo-reset">
+      html, body { height: 100%; }
+      /* dvh follows the visible area as the mobile browser's address bar shows and hides. */
+      #root { display: flex; height: 100%; height: 100dvh; flex: 1; }
+      body {
+        overflow: hidden;
+        overscroll-behavior: none;
+        -webkit-text-size-adjust: 100%;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-font-smoothing: antialiased;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', system-ui, sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run HabitFlow.</noscript>
+    <div id="root"></div>
+  </body>
+</html>

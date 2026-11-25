@@ -24,7 +24,7 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth,
           // react-native-web does not add the iOS safe-area/label padding, so give the bar room for its labels.
-          ...(Platform.OS === 'web' ? { height: 68, paddingTop: 6, paddingBottom: 10 } : null),
+          ...(Platform.OS === 'web' ? ({ height: 'calc(68px + env(safe-area-inset-bottom))', paddingTop: 6, paddingBottom: 'calc(10px + env(safe-area-inset-bottom))' } as object) : null),
         },
         tabBarLabelStyle: { fontSize: 10.5, fontWeight: '600', paddingBottom: 2, paddingTop: 2 },
       }}
