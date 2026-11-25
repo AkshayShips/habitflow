@@ -1,10 +1,13 @@
+import { usePurchaseStore } from '@/features/purchases/purchaseStore';
+
 /** Free-plan limits (Section 7 of the product spec). */
 export const FREE_HABIT_LIMIT = 5;
 
 /**
- * Placeholder until RevenueCat lands. Returns false for everyone, so the free limits apply.
- * Replace with the real entitlement check (client) backed by subscriptions_cache (server).
+ * True when RevenueCat reports an active "pro" entitlement for this user. Without a RevenueCat key
+ * (web preview, Expo Go) this is always false, so the free limits apply. The server decides Pro for
+ * AI limits independently, from subscriptions_cache, which the revenuecat-webhook function fills.
  */
 export function useIsPro(): boolean {
-  return false;
+  return usePurchaseStore((s) => s.isPro);
 }

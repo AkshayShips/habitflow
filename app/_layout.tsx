@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useSyncProfileTimezone } from '@/features/auth/hooks/useSyncProfileTimezone';
+import { usePurchasesLifecycle } from '@/features/purchases/usePurchasesLifecycle';
 import { useSyncLifecycle } from '@/features/sync/hooks/useSyncLifecycle';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { queryClient } from '@/lib/queryClient';
@@ -25,6 +26,7 @@ export default function RootLayout() {
   useEffect(() => init(), [init]);
   useSyncProfileTimezone();
   useSyncLifecycle();
+  usePurchasesLifecycle();
 
   useEffect(() => {
     if (initialized) void SplashScreen.hideAsync();

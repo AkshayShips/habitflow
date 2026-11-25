@@ -7,34 +7,60 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
-import { PLACEHOLDER_PLANS, PRO_FEATURES } from '@/lib/pricing';
+import { showToast } from '@/components/ui/Toast';
+import { useAuthStore } from '@/features/auth/store/authStore';
+import { getNativeDriver } from '@/features/purchases/purchasesDriver';
+import { usePurchaseStore } from '@/features/purchases/purchaseStore';
+import { PRO_FEATURES } from '@/lib/pricing';
 import { useTheme } from '@/theme/useTheme';
 
-// UI PREVIEW: no purchase happens. Wire to RevenueCat offerings in the paywall phase.
 export default function PaywallScreen() {
   const { colors, spacing, radius } = useTheme();
   const router = useRouter();
-  const [plan, setPlan] = useState<string>('yearly');
+  const { status, plans, isPro, buy, restore } = usePurchaseStore();
+  const userId = useAuthStore((st) => st.session?.user.id);
+  const [chosen, setChosen] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const plan = chosen ?? plans[0]?.id ?? null;
+
+  async function purchase() {
+    if (!plan) return;
+    setBusy(true);
+    const r = await buy(plan);
+    setBusy(false);
+    if (r === 'purchased') {
+      showToast('Welcome to Pro', 'success');
+      router.back();
+    } else if (r === 'failed') showToast('The purchase didn’t go through. You haven’t been charged.', 'error');
+  }
+
+  async function doRestore() {
+    setBusy(true);
+    const r = await restore();
+    setBusy(false);
+    if (r === 'restored') {
+      showToast('Pro restored', 'success');
+      router.back();
+    } else showToast(r === 'nothing' ? 'No earlier purchase found for this Apple ID.' : 'Couldn’t restore purchases. Try again.', r === 'nothing' ? 'neutral' : 'error');
+  }
+
+  async function retry() {
+    if (!userId) return;
+    await usePurchaseStore.getState().start(await getNativeDriver().catch(() => null), userId);
+  }
+
+  const canBuy = status === 'ready' && plans.length > 0 && !isPro;
 
   return (
     <Screen
       footer={
         <>
-          <Button title="Continue" onPress={() => undefined} disabled />
-          <Text variant="caption" secondary style={{ textAlign: 'center' }}>
-            Purchases are not connected yet in this preview.
-          </Text>
-          <View style={{ flexDirection: 'row', justifyContent: 'center', gap: spacing.lg }}>
-            <Pressable accessibilityRole="button" accessibilityLabel="Restore purchases" style={{ minHeight: 44, justifyContent: 'center' }}>
+          {canBuy ? <Button title="Continue" loading={busy} onPress={() => void purchase()} /> : null}
+          {status === 'ready' ? (
+            <Pressable accessibilityRole="button" accessibilityLabel="Restore purchases" onPress={() => void doRestore()} disabled={busy} style={{ minHeight: 44, justifyContent: 'center', alignItems: 'center' }}>
               <Text variant="footnote" style={{ color: colors.accent }}>Restore purchases</Text>
             </Pressable>
-            <Pressable accessibilityRole="link" accessibilityLabel="Terms of Use" style={{ minHeight: 44, justifyContent: 'center' }}>
-              <Text variant="footnote" style={{ color: colors.accent }}>Terms</Text>
-            </Pressable>
-            <Pressable accessibilityRole="link" accessibilityLabel="Privacy Policy" style={{ minHeight: 44, justifyContent: 'center' }}>
-              <Text variant="footnote" style={{ color: colors.accent }}>Privacy</Text>
-            </Pressable>
-          </View>
+          ) : null}
         </>
       }
     >
@@ -67,31 +93,48 @@ export default function PaywallScreen() {
         ))}
       </Card>
 
-      <View style={{ gap: spacing.sm }}>
-        {PLACEHOLDER_PLANS.map((p) => {
-          const on = plan === p.id;
-          return (
-            <Pressable
-              key={p.id}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: on }}
-              accessibilityLabel={`${p.title}, ${p.price} per ${p.per}. ${p.note}`}
-              onPress={() => setPlan(p.id)}
-              style={{
-                flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg, minHeight: 64,
-                borderRadius: radius.lg, backgroundColor: colors.surface, borderWidth: 2, borderColor: on ? colors.accent : colors.border,
-              }}
-            >
-              <Ionicons name={on ? 'radio-button-on' : 'radio-button-off'} size={22} color={on ? colors.accent : colors.textSecondary} />
-              <View style={{ flex: 1 }}>
-                <Text variant="headline">{p.title}</Text>
-                <Text variant="footnote" secondary>{p.note}</Text>
-              </View>
-              <Text variant="headline">{p.price}<Text secondary variant="footnote"> / {p.per}</Text></Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      {isPro ? <Text accessibilityRole="alert" style={{ textAlign: 'center' }}>You already have HabitFlow Pro. Thank you!</Text> : null}
+      {!isPro && (status === 'unavailable' || status === 'idle') ? (
+        <Text secondary style={{ textAlign: 'center' }}>Purchases aren’t available in this version of the app yet.</Text>
+      ) : null}
+      {status === 'loading' ? <Text secondary style={{ textAlign: 'center' }}>Loading plans…</Text> : null}
+      {status === 'error' ? (
+        <View style={{ gap: spacing.sm, alignItems: 'center' }}>
+          <Text secondary style={{ textAlign: 'center' }}>Couldn’t load plans. Check your connection.</Text>
+          <Button title="Try again" variant="ghost" onPress={() => void retry()} />
+        </View>
+      ) : null}
+      {status === 'ready' && plans.length === 0 && !isPro ? (
+        <Text secondary style={{ textAlign: 'center' }}>Pro isn’t available to buy right now. Please try again later.</Text>
+      ) : null}
+
+      {canBuy ? (
+        <View style={{ gap: spacing.sm }}>
+          {plans.map((p) => {
+            const on = plan === p.id;
+            return (
+              <Pressable
+                key={p.id}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: on }}
+                accessibilityLabel={`${p.title}, ${p.priceString} per ${p.per}. ${p.note}`}
+                onPress={() => setChosen(p.id)}
+                style={{
+                  flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg, minHeight: 64,
+                  borderRadius: radius.lg, backgroundColor: colors.surface, borderWidth: 2, borderColor: on ? colors.accent : colors.border,
+                }}
+              >
+                <Ionicons name={on ? 'radio-button-on' : 'radio-button-off'} size={22} color={on ? colors.accent : colors.textSecondary} />
+                <View style={{ flex: 1 }}>
+                  <Text variant="headline">{p.title}</Text>
+                  <Text variant="footnote" secondary>{p.note}</Text>
+                </View>
+                <Text variant="headline">{p.priceString}<Text secondary variant="footnote"> / {p.per}</Text></Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
 
       <Text variant="footnote" secondary>
         Subscriptions renew automatically unless cancelled at least 24 hours before the period ends. Manage or cancel any time in your Apple ID settings.

@@ -76,12 +76,18 @@ Deno.serve(async (req) => {
         messages: [...history, { role: 'user', content: message }],
       }),
     });
-    if (!res.ok) throw new Error(`anthropic ${res.status}`);
+    if (!res.ok) {
+      // Log WHY (status + Anthropic's error type/message; never the key) so outages are diagnosable.
+      const errBody = await res.text().catch(() => '');
+      console.error(`anthropic_error status=${res.status} body=${errBody.slice(0, 400)}`);
+      throw new Error(`anthropic ${res.status}`);
+    }
     const data = await res.json();
     reply = (data.content ?? []).filter((b: { type: string }) => b.type === 'text').map((b: { text: string }) => b.text).join('').trim();
     tokens = (data.usage?.input_tokens ?? 0) + (data.usage?.output_tokens ?? 0);
     if (!reply) throw new Error('empty reply');
-  } catch {
+  } catch (e) {
+    console.error(`coach_failed ${e instanceof Error ? e.message : String(e)}`);
     await admin.rpc('refund_ai_message', { p_user: userId }); // a failed call must not cost the user a message
     return json({ error: 'coach_unavailable' }, 502);
   }
