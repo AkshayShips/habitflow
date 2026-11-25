@@ -13,7 +13,7 @@ import { askCoach, clearHistory, loadHistory, type CoachFailure, type CoachMessa
 import { giveCoachConsent, hasCoachConsent } from '@/features/coach/coachConsent';
 import { showToast } from '@/components/ui/Toast';
 import { IS_DEMO } from '@/lib/demo';
-import { useIsPro } from '@/lib/entitlements';
+import { PAYMENTS_ENABLED, useHasPaidPlan } from '@/lib/entitlements';
 import { useTheme } from '@/theme/useTheme';
 
 const FREE_DAILY_MESSAGES = 3;
@@ -33,7 +33,7 @@ export default function CoachScreen() {
   const { colors, spacing, radius } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const isPro = useIsPro();
+  const isPro = useHasPaidPlan();
   const userId = useAuthStore((st) => st.session?.user.id);
   const scroll = useRef<React.ComponentRef<typeof ScrollView>>(null);
 
@@ -195,8 +195,8 @@ export default function CoachScreen() {
         {blocked ? (
           <View style={{ backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.sm }}>
             <Text variant="title2">That’s today’s free messages</Text>
-            <Text secondary>Your allowance resets tomorrow. Pro removes the daily limit.</Text>
-            <Button title="See Pro" onPress={() => router.push('/paywall')} />
+            <Text secondary>{PAYMENTS_ENABLED ? 'Your allowance resets tomorrow. Pro removes the daily limit.' : 'Your allowance resets tomorrow.'}</Text>
+            {PAYMENTS_ENABLED ? <Button title="See Pro" onPress={() => router.push('/paywall')} /> : null}
           </View>
         ) : null}
       </ScrollView>

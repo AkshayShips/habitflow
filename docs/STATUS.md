@@ -1,5 +1,7 @@
 # HabitFlow: honest status (2026-11-25)
 
+**Direction (decided 2026-11-25): HabitFlow is a website styled like an iOS app, not an App Store app.** The main Vercel link runs the live (non-demo) build with real sign-in. Payments are off (`PAYMENTS_ENABLED = false` in `lib/entitlements.ts`): everything is free, and no Pro or upgrade UI is shown. Apple items below (Sign in with Apple, StoreKit/RevenueCat, App Store, widgets/HealthKit/Watch/Shortcuts, device builds) are **not needed for this direction**; they are kept for reference only. Reminders use native notifications, so on the web they are unavailable. The Coach keeps its server-side daily cap to protect the API bill.
+
 Labels: **IT** Implemented and tested · **INT** Implemented but not fully tested · **UI** UI-only · **PLAN** Planned · **BLK** Blocked by external configuration.
 
 "Tested" here means automated tests (138 tests, 15 suites: logic, sync engine against a fake server, real SQLite via node:sqlite) and/or rolled-back SQL tests against the live Supabase project. **Nothing has been run on an iOS device or simulator.** Visual checks were desktop Chromium screenshots of the web build only. The app has not been submitted to or approved by the App Store.

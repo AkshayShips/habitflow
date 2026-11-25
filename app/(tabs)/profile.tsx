@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Group, ListRow } from '@/components/ui/Card';
 import { LargeHeader } from '@/components/ui/LargeHeader';
 import { Text } from '@/components/ui/Text';
-import { useIsPro } from '@/lib/entitlements';
+import { PAYMENTS_ENABLED, useIsPro } from '@/lib/entitlements';
 import { sendMagicLink, signInWithApple, signOut } from '@/features/auth/api/auth';
 import { useIsGuest, useUser } from '@/features/auth/store/authStore';
 import { useSyncStore } from '@/features/sync/store/syncStore';
@@ -67,12 +67,14 @@ export default function ProfileScreen() {
             {isGuest ? 'Not backed up to an account yet' : 'Your progress is saved to your account'}
           </Text>
         </View>
-        <View style={{ backgroundColor: colors.surfaceAlt, borderRadius: 999, paddingHorizontal: spacing.sm + 2, paddingVertical: 4 }}>
-          <Text variant="caption" secondary>{isPro ? 'Pro' : 'Free'}</Text>
-        </View>
+        {PAYMENTS_ENABLED ? (
+          <View style={{ backgroundColor: colors.surfaceAlt, borderRadius: 999, paddingHorizontal: spacing.sm + 2, paddingVertical: 4 }}>
+            <Text variant="caption" secondary>{isPro ? 'Pro' : 'Free'}</Text>
+          </View>
+        ) : null}
       </View>
 
-      {!isPro && (
+      {PAYMENTS_ENABLED && !isPro && (
         <Group>
           <ListRow icon="sparkles" iconColor={tileColors.purple} title="Upgrade to Pro" subtitle="Unlimited habits, full history, more coach messages" onPress={() => router.push('/paywall')} last />
         </Group>
